@@ -230,6 +230,9 @@ void Search::Worker::start_searching() {
     main_manager()->updates.onBestmove(bestmove, ponder);
 }
 
+static int tune[5]{8, 1, 3, 1, 4};
+TUNE(SetRange(1, 128), tune);
+
 // Main iterative deepening loop. It calls search()
 // repeatedly with increasing depth until the allocated thinking time has been
 // consumed, the user stops the search, or the maximum search depth is reached.
@@ -386,7 +389,8 @@ void Search::Worker::iterative_deepening() {
                 else
                     break;
 
-                delta += delta / 3;
+                delta += adjustedDepth < tune[0] ? (delta * tune[1] / tune[2])
+                                                 : (delta * tune[3] / tune[4]);
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
