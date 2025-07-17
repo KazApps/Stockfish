@@ -386,7 +386,7 @@ void Search::Worker::iterative_deepening() {
                 else
                     break;
 
-                delta += delta * 6 / (18 - failedHighCnt + std::min(adjustedDepth, 24) / 3);
+                delta += delta * 3 / (9 - failedHighCnt + adjustedDepth > 8);
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
