@@ -89,7 +89,8 @@ int correction_value(const Worker& w, const Position& pos, const Stack* const ss
 // Add correctionHistory value to raw staticEval and guarantee evaluation
 // does not hit the tablebase range.
 Value to_corrected_static_eval(const Value v, const int cv, const Depth depth) {
-    return std::clamp(v + cv / (131072 + (16 - std::min(depth, 32)) * 96), VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
+    return std::clamp(v + cv / (131072 + (24 - std::min(depth, 48)) * 96),
+                      VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
 }
 
 void update_correction_history(const Position& pos,
@@ -783,7 +784,8 @@ Value Search::Worker::search(
         if (!is_valid(unadjustedStaticEval))
             unadjustedStaticEval = evaluate(pos);
 
-        ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, correctionValue, depth);
+        ss->staticEval = eval =
+          to_corrected_static_eval(unadjustedStaticEval, correctionValue, depth);
 
         // ttValue can be used as a better position evaluation
         if (is_valid(ttData.value)
@@ -793,7 +795,8 @@ Value Search::Worker::search(
     else
     {
         unadjustedStaticEval = evaluate(pos);
-        ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, correctionValue, depth);
+        ss->staticEval       = eval =
+          to_corrected_static_eval(unadjustedStaticEval, correctionValue, depth);
 
         // Static evaluation is saved as it was before adjustment by correction history
         ttWriter.write(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_UNSEARCHED, Move::none(),
