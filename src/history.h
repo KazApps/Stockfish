@@ -86,7 +86,9 @@ class StatsEntry {
     void operator<<(int bonus) {
         // Make sure that bonus is in range [-D, D]
         int clampedBonus = std::clamp(bonus, -D, D);
-        entry += clampedBonus - (entry * std::abs(clampedBonus) + D / 2) / D;
+        int sign         = (entry < 0) ? -1 : 1;
+        entry +=
+          clampedBonus - (entry * std::abs(clampedBonus) + sign * static_cast<int>(D) / 2) / D;
 
         assert(std::abs(entry) <= D);
     }
