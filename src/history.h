@@ -88,7 +88,7 @@ class StatsEntry {
         int clampedBonus = std::clamp(bonus, -D, D);
         int sign         = (entry < 0) ? -1 : 1;
         entry +=
-          clampedBonus - (entry * std::abs(clampedBonus) + sign * static_cast<int>(D) / 2) / D;
+          clampedBonus - (entry * std::abs(clampedBonus) + sign * static_cast<int>(D) / 3) / D;
 
         assert(std::abs(entry) <= D);
     }
