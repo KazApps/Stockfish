@@ -40,7 +40,7 @@ struct StateInfo {
 
     // Copied when making a move
     Key    materialKey;
-    Key    pawnKey;
+    Key    pawnKingKey;
     Key    minorPieceKey;
     Key    nonPawnKey[COLOR_NB];
     Value  nonPawnMaterial[COLOR_NB];
@@ -144,7 +144,7 @@ class Position {
     // Accessing hash keys
     Key key() const;
     Key material_key() const;
-    Key pawn_key() const;
+    Key pawn_king_key() const;
     Key minor_piece_key() const;
     Key non_pawn_key(Color c) const;
 
@@ -295,7 +295,7 @@ inline Key Position::adjust_key50(Key k) const {
     return st->rule50 < 14 - AfterMove ? k : k ^ make_key((st->rule50 - (14 - AfterMove)) / 8);
 }
 
-inline Key Position::pawn_key() const { return st->pawnKey; }
+inline Key Position::pawn_king_key() const { return st->pawnKingKey; }
 
 inline Key Position::material_key() const { return st->materialKey; }
 

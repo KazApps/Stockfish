@@ -47,7 +47,7 @@ namespace Zobrist {
 Key psq[PIECE_NB][SQUARE_NB];
 Key enpassant[FILE_NB];
 Key castling[CASTLING_RIGHT_NB];
-Key side, noPawns;
+Key side;
 }
 
 namespace {
@@ -127,8 +127,7 @@ void Position::init() {
     for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
         Zobrist::castling[cr] = rng.rand<Key>();
 
-    Zobrist::side    = rng.rand<Key>();
-    Zobrist::noPawns = rng.rand<Key>();
+    Zobrist::side = rng.rand<Key>();
 
     // Prepare the cuckoo tables
     cuckoo.fill(0);
@@ -338,7 +337,7 @@ void Position::set_state() const {
     st->key = st->materialKey = 0;
     st->minorPieceKey         = 0;
     st->nonPawnKey[WHITE] = st->nonPawnKey[BLACK] = 0;
-    st->pawnKey                                   = Zobrist::noPawns;
+    st->pawnKingKey                               = 0;
     st->nonPawnMaterial[WHITE] = st->nonPawnMaterial[BLACK] = VALUE_ZERO;
     st->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
 
@@ -350,8 +349,8 @@ void Position::set_state() const {
         Piece  pc = piece_on(s);
         st->key ^= Zobrist::psq[pc][s];
 
-        if (type_of(pc) == PAWN)
-            st->pawnKey ^= Zobrist::psq[pc][s];
+        if (type_of(pc) == PAWN || type_of(pc) == KING)
+            st->pawnKingKey ^= Zobrist::psq[pc][s];
 
         else
         {
@@ -758,7 +757,7 @@ DirtyPiece Position::do_move(Move                      m,
                 assert(piece_on(capsq) == make_piece(them, PAWN));
             }
 
-            st->pawnKey ^= Zobrist::psq[captured][capsq];
+            st->pawnKingKey ^= Zobrist::psq[captured][capsq];
         }
         else
         {
@@ -849,7 +848,7 @@ DirtyPiece Position::do_move(Move                      m,
         }
 
         // Update pawn hash key
-        st->pawnKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+        st->pawnKingKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
         // Reset rule 50 draw counter
         st->rule50 = 0;
@@ -857,6 +856,11 @@ DirtyPiece Position::do_move(Move                      m,
 
     else
     {
+        if (type_of(pc) == KING)
+        {
+            st->pawnKingKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+        }
+
         st->nonPawnKey[us] ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
         if (type_of(pc) <= BISHOP)

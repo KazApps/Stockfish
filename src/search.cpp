@@ -75,7 +75,7 @@ using SearchedList                  = ValueList<Move, SEARCHEDLIST_CAPACITY>;
 int correction_value(const Worker& w, const Position& pos, const Stack* const ss) {
     const Color us    = pos.side_to_move();
     const auto  m     = (ss - 1)->currentMove;
-    const auto  pcv   = w.pawnCorrectionHistory[pawn_structure_index<Correction>(pos)][us];
+    const auto  pcv   = w.pawnCorrectionHistory[pawn_king_index<Correction>(pos)][us];
     const auto  micv  = w.minorPieceCorrectionHistory[minor_piece_index(pos)][us];
     const auto  wnpcv = w.nonPawnCorrectionHistory[non_pawn_index<WHITE>(pos)][WHITE][us];
     const auto  bnpcv = w.nonPawnCorrectionHistory[non_pawn_index<BLACK>(pos)][BLACK][us];
@@ -101,8 +101,7 @@ void update_correction_history(const Position& pos,
 
     static constexpr int nonPawnWeight = 172;
 
-    workerThread.pawnCorrectionHistory[pawn_structure_index<Correction>(pos)][us]
-      << bonus * 111 / 128;
+    workerThread.pawnCorrectionHistory[pawn_king_index<Correction>(pos)][us] << bonus * 111 / 128;
     workerThread.minorPieceCorrectionHistory[minor_piece_index(pos)][us] << bonus * 151 / 128;
     workerThread.nonPawnCorrectionHistory[non_pawn_index<WHITE>(pos)][WHITE][us]
       << bonus * nonPawnWeight / 128;
@@ -540,7 +539,7 @@ void Search::Worker::undo_null_move(Position& pos) { pos.undo_null_move(); }
 void Search::Worker::clear() {
     mainHistory.fill(67);
     captureHistory.fill(-688);
-    pawnHistory.fill(-1287);
+    pawnKingHistory.fill(-1287);
     pawnCorrectionHistory.fill(5);
     minorPieceCorrectionHistory.fill(0);
     nonPawnCorrectionHistory.fill(0);
@@ -806,7 +805,7 @@ Value Search::Worker::search(
         int bonus = std::clamp(-10 * int((ss - 1)->staticEval + ss->staticEval), -1858, 1492) + 661;
         mainHistory[~us][((ss - 1)->currentMove).from_to()] << bonus * 1057 / 1024;
         if (type_of(pos.piece_on(prevSq)) != PAWN && ((ss - 1)->currentMove).type_of() != PROMOTION)
-            pawnHistory[pawn_structure_index(pos)][pos.piece_on(prevSq)][prevSq]
+            pawnKingHistory[pawn_king_index(pos)][pos.piece_on(prevSq)][prevSq]
               << bonus * 1266 / 1024;
     }
 
@@ -964,7 +963,7 @@ moves_loop:  // When in check, search starts here
 
 
     MovePicker mp(pos, ttData.move, depth, &mainHistory, &lowPlyHistory, &captureHistory, contHist,
-                  &pawnHistory, ss->ply);
+                  &pawnKingHistory, ss->ply);
 
     value = bestValue;
 
@@ -1064,7 +1063,7 @@ moves_loop:  // When in check, search starts here
             {
                 int history = (*contHist[0])[movedPiece][move.to_sq()]
                             + (*contHist[1])[movedPiece][move.to_sq()]
-                            + pawnHistory[pawn_structure_index(pos)][movedPiece][move.to_sq()];
+                            + pawnKingHistory[pawn_king_index(pos)][movedPiece][move.to_sq()];
 
                 // Continuation history based pruning
                 if (history < -4229 * depth)
@@ -1429,7 +1428,7 @@ moves_loop:  // When in check, search starts here
         mainHistory[~us][((ss - 1)->currentMove).from_to()] << scaledBonus * 203 / 32768;
 
         if (type_of(pos.piece_on(prevSq)) != PAWN && ((ss - 1)->currentMove).type_of() != PROMOTION)
-            pawnHistory[pawn_structure_index(pos)][pos.piece_on(prevSq)][prevSq]
+            pawnKingHistory[pawn_king_index(pos)][pos.piece_on(prevSq)][prevSq]
               << scaledBonus * 1040 / 32768;
     }
 
@@ -1600,7 +1599,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
     // the moves. We presently use two stages of move generator in quiescence search:
     // captures, or evasions only when in check.
     MovePicker mp(pos, ttData.move, DEPTH_QS, &mainHistory, &lowPlyHistory, &captureHistory,
-                  contHist, &pawnHistory, ss->ply);
+                  contHist, &pawnKingHistory, ss->ply);
 
     // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta
     // cutoff occurs.
@@ -1648,7 +1647,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
             // Continuation history based pruning
             if (!capture
                 && (*contHist[0])[pos.moved_piece(move)][move.to_sq()]
-                       + pawnHistory[pawn_structure_index(pos)][pos.moved_piece(move)][move.to_sq()]
+                       + pawnKingHistory[pawn_king_index(pos)][pos.moved_piece(move)][move.to_sq()]
                      <= 6218)
                 continue;
 
@@ -1897,8 +1896,8 @@ void update_quiet_histories(
     update_continuation_histories(ss, pos.moved_piece(move), move.to_sq(),
                                   bonus * (bonus > 0 ? 1082 : 784) / 1024);
 
-    int pIndex = pawn_structure_index(pos);
-    workerThread.pawnHistory[pIndex][pos.moved_piece(move)][move.to_sq()]
+    int pIndex = pawn_king_index(pos);
+    workerThread.pawnKingHistory[pIndex][pos.moved_piece(move)][move.to_sq()]
       << (bonus * (bonus > 0 ? 705 : 450) / 1024) + 70;
 }
 

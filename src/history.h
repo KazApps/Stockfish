@@ -33,25 +33,26 @@
 
 namespace Stockfish {
 
-constexpr int PAWN_HISTORY_SIZE        = 512;    // has to be a power of 2
+constexpr int PAWN_KING_HISTORY_SIZE   = 1024;   // has to be a power of 2
 constexpr int CORRECTION_HISTORY_SIZE  = 32768;  // has to be a power of 2
 constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 constexpr int LOW_PLY_HISTORY_SIZE     = 5;
 
-static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
-              "PAWN_HISTORY_SIZE has to be a power of 2");
+static_assert((PAWN_KING_HISTORY_SIZE & (PAWN_KING_HISTORY_SIZE - 1)) == 0,
+              "PAWN_KING_HISTORY_SIZE has to be a power of 2");
 
 static_assert((CORRECTION_HISTORY_SIZE & (CORRECTION_HISTORY_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_SIZE has to be a power of 2");
 
-enum PawnHistoryType {
+enum PawnKingHistoryType {
     Normal,
     Correction
 };
 
-template<PawnHistoryType T = Normal>
-inline int pawn_structure_index(const Position& pos) {
-    return pos.pawn_key() & ((T == Normal ? PAWN_HISTORY_SIZE : CORRECTION_HISTORY_SIZE) - 1);
+template<PawnKingHistoryType T = Normal>
+inline int pawn_king_index(const Position& pos) {
+    return pos.pawn_king_key()
+         & ((T == Normal ? PAWN_KING_HISTORY_SIZE : CORRECTION_HISTORY_SIZE) - 1);
 }
 
 inline int minor_piece_index(const Position& pos) {
@@ -123,15 +124,16 @@ using PieceToHistory = Stats<std::int16_t, 30000, PIECE_NB, SQUARE_NB>;
 // (~63 elo)
 using ContinuationHistory = MultiArray<PieceToHistory, PIECE_NB, SQUARE_NB>;
 
-// PawnHistory is addressed by the pawn structure and a move's [piece][to]
-using PawnHistory = Stats<std::int16_t, 8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+// PawnKingHistory is addressed by the pawn structure and king position
+// and a move's [piece][to]
+using PawnKingHistory = Stats<std::int16_t, 8192, PAWN_KING_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 
 // Correction histories record differences between the static evaluation of
 // positions and their search score. It is used to improve the static evaluation
 // used by some search heuristics.
 // see https://www.chessprogramming.org/Static_Evaluation_Correction_History
 enum CorrHistType {
-    Pawn,          // By color and pawn structure
+    PawnKing,      // By color and pawn structure and king position
     Minor,         // By color and positions of minor pieces (Knight, Bishop)
     NonPawn,       // By non-pawn material positions and color
     PieceTo,       // By [piece][to] move
