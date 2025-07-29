@@ -60,7 +60,19 @@ inline int minor_piece_index(const Position& pos) {
 
 template<Color c>
 inline int non_pawn_index(const Position& pos) {
-    return pos.non_pawn_key(c) & (CORRECTION_HISTORY_SIZE - 1);
+    static PRNG                rng(2804124);
+    static std::array<Key, 16> ksqKeys{
+      rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(),
+      rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(),
+      rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(),
+      rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>()};
+
+    Square ksq1      = pos.square<KING>(c);
+    Square ksq2      = pos.square<KING>(~c);
+    int    kingZone1 = (file_of(ksq1) / 2) * 4 + (rank_of(ksq1) / 2);
+    int    kingZone2 = (file_of(ksq2) / 2) * 4 + (rank_of(ksq2) / 2);
+
+    return (pos.non_pawn_key(c) ^ ksqKeys[kingZone1] ^ ksqKeys[kingZone2]) & (CORRECTION_HISTORY_SIZE - 1);
 }
 
 // StatsEntry is the container of various numerical statistics. We use a class
