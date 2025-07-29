@@ -1815,6 +1815,9 @@ void update_all_stats(const Position& pos,
     Piece                  movedPiece     = pos.moved_piece(bestMove);
     PieceType              capturedPiece;
 
+    const size_t quietsSize   = quietsSearched.size();
+    const size_t capturesSize = capturesSearched.size();
+
     int bonus = std::min(142 * depth - 88, 1501) + 318 * (bestMove == ttMove);
     int malus = std::min(757 * depth - 172, 2848) - 30 * moveCount;
 
@@ -1823,8 +1826,9 @@ void update_all_stats(const Position& pos,
         update_quiet_histories(pos, ss, workerThread, bestMove, bonus * 1054 / 1024);
 
         // Decrease stats for all non-best quiet moves
-        for (Move move : quietsSearched)
-            update_quiet_histories(pos, ss, workerThread, move, -malus * 1388 / 1024);
+        for (size_t i = 0; i < quietsSize; ++i)
+            update_quiet_histories(pos, ss, workerThread, quietsSearched[i],
+                                   -malus * (1388 - (quietsSize - i) * 4) / 1024);
     }
     else
     {
@@ -1839,11 +1843,13 @@ void update_all_stats(const Position& pos,
         update_continuation_histories(ss - 1, pos.piece_on(prevSq), prevSq, -malus * 595 / 1024);
 
     // Decrease stats for all non-best capture moves
-    for (Move move : capturesSearched)
+    for (size_t i = 0; i < capturesSize; ++i)
     {
+        Move move     = capturesSearched[i];
         movedPiece    = pos.moved_piece(move);
         capturedPiece = type_of(pos.piece_on(move.to_sq()));
-        captureHistory[movedPiece][move.to_sq()][capturedPiece] << -malus * 1354 / 1024;
+        captureHistory[movedPiece][move.to_sq()][capturedPiece]
+          << static_cast<int>(-malus * (1354 - (capturesSize - i) * 6) / 1024);
     }
 }
 
