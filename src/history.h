@@ -33,7 +33,7 @@
 
 namespace Stockfish {
 
-constexpr int PAWN_HISTORY_SIZE        = 512;    // has to be a power of 2
+constexpr int PAWN_HISTORY_SIZE        = 2048;   // has to be a power of 2
 constexpr int CORRECTION_HISTORY_SIZE  = 32768;  // has to be a power of 2
 constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 constexpr int LOW_PLY_HISTORY_SIZE     = 5;
@@ -51,7 +51,24 @@ enum PawnHistoryType {
 
 template<PawnHistoryType T = Normal>
 inline int pawn_structure_index(const Position& pos) {
-    return pos.pawn_key() & ((T == Normal ? PAWN_HISTORY_SIZE : CORRECTION_HISTORY_SIZE) - 1);
+    constexpr auto ksqKeys = [] {
+        PRNG                rng(2804124);
+        std::array<Key, 16> keys{
+          rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(),
+          rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(),
+          rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(),
+          rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>(), rng.rand<Key>()};
+
+        return keys;
+    }();
+
+    Square ksq1      = pos.square<KING>(BLACK);
+    Square ksq2      = pos.square<KING>(WHITE);
+    int    kingZone1 = file_of(ksq1) / 2 * 4 + rank_of(ksq1) / 2;
+    int    kingZone2 = file_of(ksq2) / 2 * 4 + rank_of(ksq2) / 2;
+
+    return (pos.pawn_key() ^ ksqKeys[kingZone1] ^ ksqKeys[kingZone2])
+         & ((T == Normal ? PAWN_HISTORY_SIZE : CORRECTION_HISTORY_SIZE) - 1);
 }
 
 inline int minor_piece_index(const Position& pos) {
