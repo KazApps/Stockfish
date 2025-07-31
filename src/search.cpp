@@ -1797,10 +1797,10 @@ void update_pv(Move* pv, Move move, const Move* childPv) {
     *pv = Move::none();
 }
 
-int tune1 = 160, tune2 = 90, tune3 = 1550, tune4 = 330, tune5 = 770, tune6 = 175, tune7 = 2900,
-    tune8 = 33, tune9 = 120, tune10 = 65, tune11 = 1200, tune12 = 350, tune13 = 730, tune14 = 150,
-    tune15 = 2400, tune16 = 27, tune17 = 1054, tune18 = 1388, tune19 = 1235, tune20 = 595,
-    tune21 = 1354;
+int tune1 = 170, tune2 = 87, tune3 = 1598, tune4 = 332, tune5 = 743, tune6 = 180, tune7 = 2287,
+    tune8 = 33, tune9 = 124, tune10 = 62, tune11 = 1245, tune12 = 336, tune13 = 708, tune14 = 148,
+    tune15 = 2287, tune16 = 29, tune17 = 978, tune18 = 1115, tune19 = 1288, tune20 = 622,
+    tune21 = 1431;
 
 TUNE(tune1,
      tune2,
