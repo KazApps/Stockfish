@@ -1816,38 +1816,38 @@ void update_all_stats(const Position& pos,
     Piece                  movedPiece     = pos.moved_piece(bestMove);
     PieceType              capturedPiece;
 
-    int quietBonus   = std::min(170 * depth - 87, 1598) + 332 * (bestMove == ttMove);
-    int quietMalus   = std::min(743 * depth - 180, 2287) - 33 * quietsSearched.size();
-    int captureBonus = std::min(124 * depth - 62, 1245) + 336 * (bestMove == ttMove);
-    int captureMalus = std::min(708 * depth - 148, 2287) - 29 * capturesSearched.size();
+    int quietBonus   = std::min(173 * depth - 91, 1614) + 344 * (bestMove == ttMove);
+    int quietMalus   = std::min(738 * depth - 186, 2319) - 33 * quietsSearched.size();
+    int captureBonus = std::min(124 * depth - 61, 1312) + 328 * (bestMove == ttMove);
+    int captureMalus = std::min(738 * depth - 146, 2303) - 29 * capturesSearched.size();
 
     if (!pos.capture_stage(bestMove))
     {
-        update_quiet_histories(pos, ss, workerThread, bestMove, quietBonus * 978 / 1024);
+        update_quiet_histories(pos, ss, workerThread, bestMove, quietBonus * 933 / 1024);
 
         // Decrease stats for all non-best quiet moves
         for (Move move : quietsSearched)
-            update_quiet_histories(pos, ss, workerThread, move, -quietMalus * 1115 / 1024);
+            update_quiet_histories(pos, ss, workerThread, move, -quietMalus * 1133 / 1024);
     }
     else
     {
         // Increase stats for the best move in case it was a capture move
         capturedPiece = type_of(pos.piece_on(bestMove.to_sq()));
-        captureHistory[movedPiece][bestMove.to_sq()][capturedPiece] << captureBonus * 1288 / 1024;
+        captureHistory[movedPiece][bestMove.to_sq()][capturedPiece] << captureBonus * 1289 / 1024;
     }
 
     // Extra penalty for a quiet early move that was not a TT move in
     // previous ply when it gets refuted.
     if (prevSq != SQ_NONE && ((ss - 1)->moveCount == 1 + (ss - 1)->ttHit) && !pos.captured_piece())
         update_continuation_histories(ss - 1, pos.piece_on(prevSq), prevSq,
-                                      -captureMalus * 622 / 1024);
+                                      -captureMalus * 657 / 1024);
 
     // Decrease stats for all non-best capture moves
     for (Move move : capturesSearched)
     {
         movedPiece    = pos.moved_piece(move);
         capturedPiece = type_of(pos.piece_on(move.to_sq()));
-        captureHistory[movedPiece][move.to_sq()][capturedPiece] << -captureMalus * 1431 / 1024;
+        captureHistory[movedPiece][move.to_sq()][capturedPiece] << -captureMalus * 1386 / 1024;
     }
 }
 
