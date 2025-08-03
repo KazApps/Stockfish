@@ -1739,7 +1739,7 @@ TimePoint Search::Worker::elapsed_time() const { return main_manager()->tm.elaps
 
 Value Search::Worker::evaluate(const Position& pos, int ply, Depth depth) {
     return Eval::evaluate(networks[numaAccessToken], pos, accumulatorStack, refreshTable,
-                          optimism[pos.side_to_move()]) * (1280 + ply) / (1280 + depth);
+                          optimism[pos.side_to_move()]) * (1536 + ply) / (1536 + depth * 2);
 }
 
 namespace {
