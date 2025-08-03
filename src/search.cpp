@@ -1195,7 +1195,8 @@ moves_loop:  // When in check, search starts here
         if ((ss + 1)->cutoffCnt > 2)
             r += 935 + allNode * 763;
 
-        r += (ss + 1)->quietMoveStreak * 51;
+        int streak = (ss + 1)->quietMoveStreak;
+        r += streak * streak * 3;
 
         // For first picked move (ttMove) reduce reduction
         if (move == ttData.move)
