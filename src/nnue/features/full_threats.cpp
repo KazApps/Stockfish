@@ -34,20 +34,6 @@ namespace Stockfish::Eval::NNUE::Features {
 // Lookup array for indexing threats
 IndexType offsets[PIECE_NB][SQUARE_NB + 2];
 
-// Information on a particular pair of pieces and whether they should be excluded
-struct PiecePairData {
-    // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
-    uint32_t data;
-    PiecePairData() {}
-    PiecePairData(bool excluded_pair, bool semi_excluded_pair, IndexType feature_index_base) {
-        data =
-          excluded_pair << 1 | (semi_excluded_pair && !excluded_pair) | feature_index_base << 8;
-    }
-    // lsb: excluded if from < to; 2nd lsb: always excluded
-    uint8_t   excluded_pair_info() const { return (uint8_t) data; }
-    IndexType feature_index_base() const { return data >> 8; }
-};
-
 constexpr std::array<Piece, 12> AllPieces = {
   W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
   B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
@@ -55,8 +41,8 @@ constexpr std::array<Piece, 12> AllPieces = {
 
 // The final index is calculated from summing data found in these two LUTs, as well
 // as offsets[attacker][from]
-PiecePairData index_lut1[PIECE_NB][PIECE_NB];              // [attacker][attacked]
-uint8_t       index_lut2[PIECE_NB][SQUARE_NB][SQUARE_NB];  // [attacker][from][to]
+uint32_t index_lut1[PIECE_NB][PIECE_NB][2];           // [attacker][attacked][from < to]
+uint8_t  index_lut2[PIECE_NB][SQUARE_NB][SQUARE_NB];  // [attacker][from][to]
 
 static void init_index_luts() {
     for (Piece attacker : AllPieces)
@@ -73,8 +59,10 @@ static void init_index_luts() {
                               + (color_of(attacked) * (numValidTargets[attacker] / 2) + map)
                                   * offsets[attacker][64];
 
-            bool excluded                  = map < 0;
-            index_lut1[attacker][attacked] = PiecePairData(excluded, semi_excluded, feature);
+            bool excluded                     = map < 0;
+            index_lut1[attacker][attacked][0] = excluded << 30 | feature;  // from >= to
+            index_lut1[attacker][attacked][1] =
+              (excluded || semi_excluded) << 30 | feature;  // from < to
         }
     }
 
@@ -136,14 +124,8 @@ inline sf_always_inline IndexType FullThreats::make_index(
     attacker         = Piece(attacker ^ swap);
     attacked         = Piece(attacked ^ swap);
 
-    const auto piecePairData = index_lut1[attacker][attacked];
-
-    const bool less_than = static_cast<unsigned>(from) < static_cast<unsigned>(to);
-    if ((piecePairData.excluded_pair_info() + less_than) & 2)
-        return FullThreats::Dimensions;
-
-    const IndexType index =
-      piecePairData.feature_index_base() + offsets[attacker][from] + index_lut2[attacker][from][to];
+    const IndexType index = index_lut1[attacker][attacked][from < to] + offsets[attacker][from]
+                          + index_lut2[attacker][from][to];
 
     sf_assume(index != FullThreats::Dimensions);
     return index;
