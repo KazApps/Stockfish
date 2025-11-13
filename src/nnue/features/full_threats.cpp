@@ -56,7 +56,7 @@ constexpr std::array<Piece, 12> AllPieces = {
 // The final index is calculated from summing data found in these two LUTs, as well
 // as offsets[attacker][from]
 PiecePairData index_lut1[PIECE_NB][PIECE_NB];              // [attacker][attacked]
-uint8_t       index_lut2[PIECE_NB][SQUARE_NB][SQUARE_NB];  // [attacker][from][to]
+uint16_t      index_lut2[PIECE_NB][SQUARE_NB][SQUARE_NB];  // [attacker][from][to]
 
 static void init_index_luts() {
     for (Piece attacker : AllPieces)
@@ -85,7 +85,7 @@ static void init_index_luts() {
             for (int to = 0; to < SQUARE_NB; ++to)
             {
                 Bitboard attacks               = attacks_bb(attacker, Square(from));
-                index_lut2[attacker][from][to] = popcount((square_bb(Square(to)) - 1) & attacks);
+                index_lut2[attacker][from][to] = offsets[attacker][from] + popcount((square_bb(Square(to)) - 1) & attacks);
             }
         }
     }
@@ -151,7 +151,7 @@ FullThreats::make_index(Piece attacker, Square from, Square to, Piece attacked, 
         return Dimensions;
 
     IndexType index =
-      piecePairData.feature_index_base() + offsets[attacker][from] + index_lut2[attacker][from][to];
+      piecePairData.feature_index_base() + index_lut2[attacker][from][to];
 
     sf_assume(index != Dimensions);
     return index;
