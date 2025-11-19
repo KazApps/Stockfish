@@ -124,8 +124,8 @@ inline sf_always_inline IndexType FullThreats::make_index(
     attacker         = Piece(attacker ^ swap);
     attacked         = Piece(attacked ^ swap);
 
-    const IndexType index = index_lut1[attacker][attacked][from < to] + offsets[attacker][from]
-                          + index_lut2[attacker][from][to];
+    const IndexType index = index_lut1[attacker][attacked][uint8_t(from) < uint8_t(to)]
+                          + offsets[attacker][from] + index_lut2[attacker][from][to];
 
     sf_assume(index != FullThreats::Dimensions);
     return index;
