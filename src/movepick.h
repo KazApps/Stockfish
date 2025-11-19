@@ -51,14 +51,11 @@ class MovePicker {
     Move next_move();
     void skip_quiet_moves();
 
-    using IndexList = ValueList<uint16_t, MAX_MOVES>;
-
    private:
     template<typename Pred>
     Move select(Pred);
-
     template<GenType T>
-    ExtMove* score(MoveList<T>&, IndexList* above_limit, int limit = 0);
+    ExtMove* score(MoveList<T>&);
     ExtMove* begin() { return cur; }
     ExtMove* end() { return endCur; }
 
