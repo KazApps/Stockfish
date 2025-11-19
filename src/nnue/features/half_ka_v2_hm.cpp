@@ -52,14 +52,9 @@ void HalfKAv2_hm::append_active_indices(Color perspective, const Position& pos, 
 void HalfKAv2_hm::append_changed_indices(
   Color perspective, Square ksq, const DiffType& diff, IndexList& removed, IndexList& added) {
     removed.push_back(make_index(perspective, diff.from, diff.pc, ksq));
-    if (diff.to != SQ_NONE)
-        added.push_back(make_index(perspective, diff.to, diff.pc, ksq));
-
-    if (diff.remove_sq != SQ_NONE)
-        removed.push_back(make_index(perspective, diff.remove_sq, diff.remove_pc, ksq));
-
-    if (diff.add_sq != SQ_NONE)
-        added.push_back(make_index(perspective, diff.add_sq, diff.add_pc, ksq));
+    added.push_if(make_index(perspective, diff.to, diff.pc, ksq), diff.to != SQ_NONE);
+    removed.push_if(make_index(perspective, diff.remove_sq, diff.remove_pc, ksq), diff.remove_sq != SQ_NONE);
+    added.push_if(make_index(perspective, diff.add_sq, diff.add_pc, ksq), diff.add_sq != SQ_NONE);
 }
 
 bool HalfKAv2_hm::requires_refresh(const DiffType& diff, Color perspective) {
