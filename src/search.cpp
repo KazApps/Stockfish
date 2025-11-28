@@ -76,6 +76,9 @@ using SearchedList                  = ValueList<Move, SEARCHEDLIST_CAPACITY>;
 // (*Scaler) All tuned parameters at time controls shorter than
 // optimized for require verifications at longer time controls
 
+int x1 = 10347, x2 = 8821, x3 = 11168, x4 = 7841;
+TUNE(x1, x2, x3, x4);
+
 int correction_value(const Worker& w, const Position& pos, const Stack* const ss) {
     const Color us    = pos.side_to_move();
     const auto  m     = (ss - 1)->currentMove;
@@ -88,7 +91,7 @@ int correction_value(const Worker& w, const Position& pos, const Stack* const ss
                     + (*(ss - 4)->continuationCorrectionHistory)[pos.piece_on(m.to_sq())][m.to_sq()]
                  : 8;
 
-    return 10347 * pcv + 8821 * micv + 11168 * (wnpcv + bnpcv) + 7841 * cntcv;
+    return x1 * pcv + x2 * micv + x3 * (wnpcv + bnpcv) + x4 * cntcv;
 }
 
 // Add correctionHistory value to raw staticEval and guarantee evaluation
