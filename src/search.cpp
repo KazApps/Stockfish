@@ -268,7 +268,7 @@ void Search::Worker::iterative_deepening() {
         (ss - i)->continuationHistory =
           &continuationHistory[0][0][NO_PIECE][0];  // Use as a sentinel
         (ss - i)->continuationCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][0];
-        (ss - i)->staticEval                    = VALUE_NONE;
+        (ss - i)->staticEval                    = VALUE_ZERO;
     }
 
     for (int i = 0; i <= MAX_PLY + 2; ++i)
