@@ -48,26 +48,23 @@ constexpr int constexpr_lsb(uint64_t bb) {
     return lsb_index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }
 
-alignas(CacheLineSize) static constexpr struct OffsetIndices {
+alignas(CacheLineSize) static constexpr auto offset_indices = [] {
+    std::array<std::uint16_t, 256 * 8> indices{};
 
-    std::uint16_t offset_indices[256][8];
-
-    constexpr OffsetIndices() :
-        offset_indices() {
-        for (int i = 0; i < 256; ++i)
+    for (int i = 0; i < 256; ++i)
+    {
+        std::uint64_t j = i, k = 0;
+        while (j)
         {
-            std::uint64_t j = i, k = 0;
-            while (j)
-            {
-                offset_indices[i][k++] = constexpr_lsb(j);
-                j &= j - 1;
-            }
-            while (k < 8)
-                offset_indices[i][k++] = 0;
+            indices[i * 8 + k++] = constexpr_lsb(j);
+            j &= j - 1;
         }
+        while (k < 8)
+            indices[i * 8 + k++] = 0;
     }
 
-} Lookup;
+    return indices;
+}();
 
     #if defined(__GNUC__) || defined(__clang__)
         #define RESTRICT __restrict__
