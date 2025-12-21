@@ -91,6 +91,8 @@ void find_nnz(const std::int32_t* RESTRICT input,
       18, 17, 16, 3, 2, 1, 0);
 
     IndexType count = 0;
+
+#pragma GCC unroll 4
     for (IndexType i = 0; i < NumChunks; ++i)
     {
         const __m512i inputV0 = _mm512_load_si512(input + i * 2 * SimdWidthIn);
