@@ -48,27 +48,6 @@ constexpr int constexpr_lsb(uint64_t bb) {
     return lsb_index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }
 
-alignas(CacheLineSize) static constexpr struct OffsetIndices {
-
-    std::uint16_t offset_indices[256][8];
-
-    constexpr OffsetIndices() :
-        offset_indices() {
-        for (int i = 0; i < 256; ++i)
-        {
-            std::uint64_t j = i, k = 0;
-            while (j)
-            {
-                offset_indices[i][k++] = constexpr_lsb(j);
-                j &= j - 1;
-            }
-            while (k < 8)
-                offset_indices[i][k++] = 0;
-        }
-    }
-
-} Lookup;
-
     #if defined(__GNUC__) || defined(__clang__)
         #define RESTRICT __restrict__
     #elif defined(_MSC_VER)
@@ -137,6 +116,24 @@ void find_nnz(const std::int32_t* RESTRICT input,
 
     using namespace SIMD;
 
+    alignas(CacheLineSize) static constexpr auto offset_indices = [] {
+        std::array<std::uint16_t, 256 * 8> indices{};
+
+        for (int i = 0; i < 256; ++i)
+        {
+            std::uint64_t j = i, k = 0;
+            while (j)
+            {
+                indices[i * 8 + k++] = constexpr_lsb(j);
+                j &= j - 1;
+            }
+            while (k < 8)
+                indices[i * 8 + k++] = 0;
+        }
+
+        return indices;
+    }();
+
     constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(std::int32_t);
     // Inputs are processed InputSimdWidth at a time and outputs are processed 8 at a time so we process in chunks of max(InputSimdWidth, 8)
     constexpr IndexType ChunkSize       = std::max<IndexType>(InputSimdWidth, 8);
@@ -161,7 +158,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
         {
             const unsigned lookup = (nnz >> (j * 8)) & 0xFF;
             const vec128_t offsets =
-              vec128_load(reinterpret_cast<const vec128_t*>(&Lookup.offset_indices[lookup]));
+              vec128_load(reinterpret_cast<const vec128_t*>(&offset_indices[lookup * 8]));
             vec128_storeu(reinterpret_cast<vec128_t*>(out + count), vec128_add(base, offsets));
             count += popcount(lookup);
             base = vec128_add(base, increment);
