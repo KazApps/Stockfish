@@ -401,7 +401,7 @@ inline constexpr auto PseudoAttacks = []() constexpr {
 // Returns the pseudo attacks of the given piece type
 // assuming an empty board.
 template<PieceType Pt>
-inline Bitboard attacks_bb(Square s, Color c = Color::WHITE) {
+inline Bitboard attacks_bb(Square s, Color c = WHITE) {
 
     assert((Pt != PAWN || c < COLOR_NB) && (is_ok(s)));
     return Pt == PAWN ? PseudoAttacks[c][s] : PseudoAttacks[Pt][s];
