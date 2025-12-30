@@ -326,6 +326,7 @@ class Worker {
     TimePoint elapsed() const;
     TimePoint elapsed_time() const;
 
+    void prefetch(const Position&);
     Value evaluate(const Position&);
 
     LimitsType limits;

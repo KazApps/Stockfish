@@ -74,6 +74,8 @@ class Network {
 
     std::size_t get_content_hash() const;
 
+    void prefetch(const Position& pos) const;
+
     NetworkOutput evaluate(const Position&                         pos,
                            AccumulatorStack&                       accumulatorStack,
                            AccumulatorCaches::Cache<FTDimensions>& cache) const;

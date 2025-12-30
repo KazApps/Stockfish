@@ -628,6 +628,8 @@ Value Search::Worker::search(
             return alpha;
     }
 
+    prefetch(pos);
+
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
     assert(0 < depth && depth < MAX_PLY);
@@ -1745,6 +1747,10 @@ TimePoint Search::Worker::elapsed() const {
 }
 
 TimePoint Search::Worker::elapsed_time() const { return main_manager()->tm.elapsed_time(); }
+
+void Search::Worker::prefetch(const Position& pos) {
+    Eval::use_smallnet(pos) ? networks[numaAccessToken].small.prefetch(pos) : networks[numaAccessToken].big.prefetch(pos);
+}
 
 Value Search::Worker::evaluate(const Position& pos) {
     return Eval::evaluate(networks[numaAccessToken], pos, accumulatorStack, refreshTable,

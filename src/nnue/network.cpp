@@ -169,6 +169,15 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename
 
 
 template<typename Arch, typename Transformer>
+void
+Network<Arch, Transformer>::prefetch(const Position& pos) const {
+
+    const int  bucket = (pos.count<ALL_PIECES>() - 1) / 4;
+    network[bucket].fc_0.prefetch();
+}
+
+
+template<typename Arch, typename Transformer>
 NetworkOutput
 Network<Arch, Transformer>::evaluate(const Position&                         pos,
                                      AccumulatorStack&                       accumulatorStack,

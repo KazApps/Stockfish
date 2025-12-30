@@ -250,6 +250,11 @@ class AffineTransformSparseInput {
         return h;
     }
 
+    // Prefetch
+    void prefetch() const {
+        Stockfish::prefetch(weights);
+    }
+
     // Forward propagation
     void propagate(const InputType* input, OutputType* output) const {
 
