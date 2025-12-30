@@ -65,34 +65,11 @@ extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard RayPassBB[SQUARE_NB][SQUARE_NB];
 
-// Magic holds all magic bitboards relevant data for a single square
-struct Magic {
-    Bitboard  mask;
-    Bitboard* attacks;
-#ifndef USE_PEXT
-    Bitboard magic;
-    unsigned shift;
-#endif
-
-    // Compute the attack's index using the 'magic bitboards' approach
-    unsigned index(Bitboard occupied) const {
-
-#ifdef USE_PEXT
-        return unsigned(pext(occupied, mask));
-#else
-        if (Is64Bit)
-            return unsigned(((occupied & mask) * magic) >> shift);
-
-        unsigned lo = unsigned(occupied) & unsigned(mask);
-        unsigned hi = unsigned(occupied >> 32) & unsigned(mask >> 32);
-        return (lo * unsigned(magic) ^ hi * unsigned(magic >> 32)) >> shift;
-#endif
-    }
-
-    Bitboard attacks_bb(Bitboard occupied) const { return attacks[index(occupied)]; }
+struct Mask {
+    Bitboard diagonal;
+    Bitboard antidiagonal;
+    Bitboard vertical;
 };
-
-extern Magic Magics[SQUARE_NB][2];
 
 constexpr Bitboard square_bb(Square s) {
     assert(is_ok(s));
@@ -325,25 +302,114 @@ constexpr Bitboard safe_destination(Square s, int step) {
     return is_ok(to) && abs(file_of(s) - file_of(to)) <= 2 ? square_bb(to) : Bitboard(0);
 }
 
-constexpr Bitboard sliding_attack(PieceType pt, Square sq, Bitboard occupied) {
-    Bitboard  attacks             = 0;
-    Direction RookDirections[4]   = {NORTH, SOUTH, EAST, WEST};
-    Direction BishopDirections[4] = {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
+constexpr auto Masks = []() constexpr {
+    int r{}, f{}, i{}, j{}, y{};
+    int d[64]{};
 
-    for (Direction d : (pt == ROOK ? RookDirections : BishopDirections))
-    {
-        Square s = sq;
-        while (safe_destination(s, d))
-        {
-            attacks |= (s += d);
-            if (occupied & s)
-            {
-                break;
+    std::array<Mask, 64> MASK{};
+
+    for (int x = 0; x < 64; ++x) {
+        for (y = 0; y < 64; ++y) d[y] = 0;
+        // directions
+        for (i = -1; i <= 1; ++i)
+            for (j = -1; j <= 1; ++j) {
+                if (i == 0 && j == 0) continue;
+                f = x & 07;
+                r = x >> 3;
+                for (r += i, f += j; 0 <= r && r < 8 && 0 <= f && f < 8; r += i, f += j) {
+                    y = 8 * r + f;
+                    d[y] = 8 * i + j;
+                }
             }
+
+        // uint64_t mask
+        Mask& mask = MASK[x];
+        for (y = x - 9; y >= 0 && d[y] == -9; y -= 9) mask.diagonal |= (1ull << y);
+        for (y = x + 9; y < 64 && d[y] == 9; y += 9) mask.diagonal |= (1ull << y);
+
+        for (y = x - 7; y >= 0 && d[y] == -7; y -= 7) mask.antidiagonal |= (1ull << y);
+        for (y = x + 7; y < 64 && d[y] == 7; y += 7) mask.antidiagonal |= (1ull << y);
+
+        for (y = x - 8; y >= 0; y -= 8) mask.vertical |= (1ull << y);
+        for (y = x + 8; y < 64; y += 8) mask.vertical |= (1ull << y);
+    }
+    return MASK;
+}();
+
+constexpr auto RankAttacks = []() constexpr {
+    std::array<uint8_t, 512> rank_attack{};
+
+    for (int x = 0; x < 64; ++x) {
+        for (int f = 0; f < 8; ++f) {
+            int o = 2 * x;
+            int x2{}, y2{};
+            int b{};
+
+            y2 = 0;
+            for (x2 = f - 1; x2 >= 0; --x2) {
+                b = 1 << x2;
+                y2 |= b;
+                if ((o & b) == b) break;
+            }
+            for (x2 = f + 1; x2 < 8; ++x2) {
+                b = 1 << x2;
+                y2 |= b;
+                if ((o & b) == b) break;
+            }
+            rank_attack[x * 8ull + f] = y2;
         }
     }
+    return rank_attack;
+}();
 
-    return attacks;
+static constexpr uint64_t bit_bswap_constexpr(uint64_t b) {
+    b = ((b >> 8) & 0x00FF00FF00FF00FFULL) | ((b << 8) & 0xFF00FF00FF00FF00ULL);
+    b = ((b >> 16) & 0x0000FFFF0000FFFFULL) | ((b << 16) & 0xFFFF0000FFFF0000ULL);
+    b = ((b >> 32) & 0x00000000FFFFFFFFULL) | ((b << 32) & 0xFFFFFFFF00000000ULL);
+    return b;
+}
+
+constexpr uint64_t bit_bswap(uint64_t b) {
+#if defined(_MSC_VER)
+    return _byteswap_uint64(b);
+#elif defined(__GNUC__)
+    return __builtin_bswap64(b);
+#else
+    return bit_bswap_constexpr(b);
+#endif
+}
+
+static constexpr uint64_t attack(uint64_t pieces, uint32_t x, uint64_t mask) {
+    uint64_t o = pieces & mask;
+    return ((o - (1ull << x)) ^ bit_bswap(bit_bswap(o) - (0x8000000000000000ull >> x))) & mask; //Daniel 28.04.2022 - Faster shift. Replaces (1ull << (s ^ 56))
+}
+
+static constexpr uint64_t horizontal_attack(uint64_t pieces, uint32_t x) {
+    uint32_t file_mask = x & 7;
+    uint32_t rank_mask = x & 56;
+    uint64_t o = (pieces >> rank_mask) & 126;
+
+    return ((uint64_t)RankAttacks[o * 4 + file_mask]) << rank_mask;
+}
+
+static constexpr uint64_t vertical_attack(uint64_t occ, uint32_t sq) {
+    return attack(occ, sq, Masks[sq].vertical);
+}
+
+static constexpr uint64_t diagonal_attack(uint64_t occ, uint32_t sq) {
+    return attack(occ, sq, Masks[sq].diagonal);
+}
+
+static constexpr uint64_t antidiagonal_attack(uint64_t occ, uint32_t sq) {
+    return attack(occ, sq, Masks[sq].antidiagonal);
+}
+
+static constexpr uint64_t bishop_attack(Square sq, Bitboard occ) {
+    return diagonal_attack(occ, sq) | antidiagonal_attack(occ, sq);
+}
+
+static constexpr uint64_t rook_attack(Square sq, Bitboard occ) {
+    return vertical_attack(occ, sq) | horizontal_attack(occ, sq);
 }
 
 constexpr Bitboard knight_attack(Square sq) {
@@ -363,14 +429,15 @@ constexpr Bitboard king_attack(Square sq) {
 constexpr Bitboard pseudo_attacks(PieceType pt, Square sq) {
     switch (pt)
     {
-    case PieceType::ROOK :
-    case PieceType::BISHOP :
-        return sliding_attack(pt, sq, 0);
-    case PieceType::QUEEN :
-        return sliding_attack(PieceType::ROOK, sq, 0) | sliding_attack(PieceType::BISHOP, sq, 0);
-    case PieceType::KNIGHT :
+    case ROOK :
+        return rook_attack(sq, 0);
+    case BISHOP :
+        return bishop_attack(sq, 0);
+    case QUEEN :
+        return rook_attack(sq, 0) | bishop_attack(sq, 0);
+    case KNIGHT :
         return knight_attack(sq);
-    case PieceType::KING :
+    case KING :
         return king_attack(sq);
     default :
         assert(false);
@@ -418,11 +485,12 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 
     switch (Pt)
     {
-    case BISHOP :
-    case ROOK :
-        return Magics[s][Pt - BISHOP].attacks_bb(occupied);
-    case QUEEN :
-        return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
+        case ROOK :
+            return Bitboards::rook_attack(s, occupied);
+        case BISHOP :
+            return Bitboards::bishop_attack(s, occupied);
+        case QUEEN :
+            return Bitboards::rook_attack(s, occupied) | Bitboards::bishop_attack(s, occupied);
     default :
         return PseudoAttacks[Pt][s];
     }
