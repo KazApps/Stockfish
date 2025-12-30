@@ -26,7 +26,7 @@
 namespace Stockfish {
 
 class OptionsMap;
-enum Color : int8_t;
+enum Color : bool;
 
 namespace Search {
 struct LimitsType;

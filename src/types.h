@@ -117,11 +117,12 @@ using Bitboard = uint64_t;
 constexpr int MAX_MOVES = 256;
 constexpr int MAX_PLY   = 246;
 
-enum Color : int8_t {
+enum Color : bool {
     WHITE,
-    BLACK,
-    COLOR_NB = 2
+    BLACK
 };
+
+constexpr int COLOR_NB = 2;
 
 enum CastlingRights : int8_t {
     NO_CASTLING,
