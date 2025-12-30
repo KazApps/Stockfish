@@ -232,7 +232,7 @@ inline sf_always_inline IndexType FullThreats::make_index(
 // Get a list of indices for active features in ascending order
 
 void FullThreats::append_active_indices(Color perspective, const Position& pos, IndexList& active) {
-    Square   ksq      = pos.square<KING>(perspective);
+    Square   ksq      = pos.king_square(perspective);
     Bitboard occupied = pos.pieces();
 
     for (Color color : {WHITE, BLACK})

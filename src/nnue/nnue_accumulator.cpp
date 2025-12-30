@@ -210,7 +210,7 @@ void AccumulatorStack::forward_update_incremental(
     assert(begin < accumulators<FeatureSet>().size());
     assert((accumulators<FeatureSet>()[begin].template acc<Dimensions>()).computed[perspective]);
 
-    const Square ksq = pos.square<KING>(perspective);
+    const Square ksq = pos.king_square(perspective);
 
     for (std::size_t next = begin + 1; next < size; next++)
     {
@@ -268,7 +268,7 @@ void AccumulatorStack::backward_update_incremental(
     assert(end < size);
     assert((latest<FeatureSet>().template acc<Dimensions>()).computed[perspective]);
 
-    const Square ksq = pos.square<KING>(perspective);
+    const Square ksq = pos.king_square(perspective);
 
     for (std::int64_t next = std::int64_t(size) - 2; next >= std::int64_t(end); next--)
         update_accumulator_incremental<false>(perspective, featureTransformer, ksq,
@@ -664,7 +664,7 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, Dimensions, PSQTBuckets>;
 
-    const Square             ksq   = pos.square<KING>(perspective);
+    const Square             ksq   = pos.king_square(perspective);
     auto&                    entry = cache[ksq][perspective];
     PSQFeatureSet::IndexList removed, added;
 

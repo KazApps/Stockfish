@@ -300,7 +300,7 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si) {
 // rights given the corresponding color and the rook starting square.
 void Position::set_castling_right(Color c, Square rfrom) {
 
-    Square         kfrom = square<KING>(c);
+    Square         kfrom = king_square(c);
     CastlingRights cr    = c & (kfrom < rfrom ? KING_SIDE : QUEEN_SIDE);
 
     st->castlingRights |= cr;
@@ -321,7 +321,7 @@ void Position::set_check_info() const {
     update_slider_blockers(WHITE);
     update_slider_blockers(BLACK);
 
-    Square ksq = square<KING>(~sideToMove);
+    Square ksq = king_square(~sideToMove);
 
     st->checkSquares[PAWN]   = attacks_bb<PAWN>(ksq, ~sideToMove);
     st->checkSquares[KNIGHT] = attacks_bb<KNIGHT>(ksq);
@@ -342,7 +342,7 @@ void Position::set_state() const {
     st->nonPawnKey[WHITE] = st->nonPawnKey[BLACK] = 0;
     st->pawnKey                                   = Zobrist::noPawns;
     st->nonPawnMaterial[WHITE] = st->nonPawnMaterial[BLACK] = VALUE_ZERO;
-    st->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
+    st->checkersBB = attackers_to(king_square(sideToMove)) & pieces(~sideToMove);
 
     set_check_info();
 
@@ -462,7 +462,7 @@ string Position::fen() const {
 // and the slider pieces of color ~c pinning pieces of color c to the king.
 void Position::update_slider_blockers(Color c) const {
 
-    Square ksq = square<KING>(c);
+    Square ksq = king_square(c);
 
     st->blockersForKing[c] = 0;
     st->pinners[~c]        = 0;
@@ -520,14 +520,14 @@ bool Position::legal(Move m) const {
     Square to   = m.to_sq();
 
     assert(color_of(moved_piece(m)) == us);
-    assert(piece_on(square<KING>(us)) == make_piece(us, KING));
+    assert(piece_on(king_square(us)) == make_piece(us, KING));
 
     // En passant captures are a tricky special case. Because they are rather
     // uncommon, we do it simply by testing whether the king is attacked after
     // the move is made.
     if (m.type_of() == EN_PASSANT)
     {
-        Square   ksq      = square<KING>(us);
+        Square   ksq      = king_square(us);
         Square   capsq    = to - pawn_push(us);
         Bitboard occupied = (pieces() ^ from ^ capsq) | to;
 
@@ -629,7 +629,7 @@ bool Position::pseudo_legal(const Move m) const {
                 return false;
 
             // Our move must be a blocking interposition or a capture of the checking piece
-            if (!(between_bb(square<KING>(us), lsb(checkers())) & to))
+            if (!(between_bb(king_square(us), lsb(checkers())) & to))
                 return false;
         }
         // In case of king moves under check we have to remove the king so as to catch
@@ -674,8 +674,8 @@ bool Position::gives_check(Move m) const {
         Square   capsq = make_square(file_of(to), rank_of(from));
         Bitboard b     = (pieces() ^ from ^ capsq) | to;
 
-        return (attacks_bb<ROOK>(square<KING>(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
-             | (attacks_bb<BISHOP>(square<KING>(~sideToMove), b)
+        return (attacks_bb<ROOK>(king_square(~sideToMove), b) & pieces(sideToMove, QUEEN, ROOK))
+             | (attacks_bb<BISHOP>(king_square(~sideToMove), b)
                 & pieces(sideToMove, QUEEN, BISHOP));
     }
     default :  //CASTLING
@@ -734,7 +734,7 @@ void Position::do_move(Move                      m,
     dp.to             = to;
     dp.add_sq         = SQ_NONE;
     dts.us            = us;
-    dts.prevKsq       = square<KING>(us);
+    dts.prevKsq       = king_square(us);
     dts.threatenedSqs = dts.threateningSqs = 0;
 
     assert(color_of(pc) == us);
@@ -896,7 +896,7 @@ void Position::do_move(Move                      m,
     st->capturedPiece = captured;
 
     // Calculate checkers bitboard (if move gives check)
-    st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
+    st->checkersBB = givesCheck ? attackers_to(king_square(them)) & pieces(us) : 0;
 
     sideToMove = ~sideToMove;
 
@@ -935,15 +935,15 @@ void Position::do_move(Move                      m,
             // by bishops, ep is not legal as the king square must be in front of the to square.
             // And because the ep square and the king are not on a common diagonal, either ep capture
             // would expose the king to a check from one of the bishops
-            if (!(file_bb(square<KING>(them)) & pawns))
+            if (!(file_bb(king_square(them)) & pawns))
                 break;
 
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal and the
             // check below relies on there only being one pawn
-            pawns &= ~file_bb(square<KING>(them));
+            pawns &= ~file_bb(king_square(them));
         }
 
-        Square   ksq      = square<KING>(them);
+        Square   ksq      = king_square(them);
         Square   capsq    = to;
         Bitboard occupied = (pieces() ^ lsb(pawns) ^ capsq) | (to - pawn_push(us));
 
@@ -979,7 +979,7 @@ void Position::do_move(Move                      m,
         }
     }
 
-    dts.ksq = square<KING>(us);
+    dts.ksq = king_square(us);
 
     assert(pos_is_ok());
 
@@ -1514,8 +1514,8 @@ bool Position::pos_is_ok() const {
 
     constexpr bool Fast = true;  // Quick (default) or full check?
 
-    if ((sideToMove != WHITE && sideToMove != BLACK) || piece_on(square<KING>(WHITE)) != W_KING
-        || piece_on(square<KING>(BLACK)) != B_KING
+    if ((sideToMove != WHITE && sideToMove != BLACK) || piece_on(king_square(WHITE)) != W_KING
+        || piece_on(king_square(BLACK)) != B_KING
         || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6))
         assert(0 && "pos_is_ok: Default");
 
@@ -1523,7 +1523,7 @@ bool Position::pos_is_ok() const {
         return true;
 
     if (pieceCount[W_KING] != 1 || pieceCount[B_KING] != 1
-        || attackers_to_exist(square<KING>(~sideToMove), pieces(), sideToMove))
+        || attackers_to_exist(king_square(~sideToMove), pieces(), sideToMove))
         assert(0 && "pos_is_ok: Kings");
 
     if ((pieces(PAWN) & (Rank1BB | Rank8BB)) || pieceCount[W_PAWN] > 8 || pieceCount[B_PAWN] > 8)
@@ -1552,7 +1552,7 @@ bool Position::pos_is_ok() const {
 
             if (piece_on(castlingRookSquare[cr]) != make_piece(c, ROOK)
                 || castlingRightsMask[castlingRookSquare[cr]] != cr
-                || (castlingRightsMask[square<KING>(c)] & cr) != cr)
+                || (castlingRightsMask[king_square(c)] & cr) != cr)
                 assert(0 && "pos_is_ok: Castling");
         }
 

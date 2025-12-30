@@ -230,7 +230,7 @@ Move* generate_all(const Position& pos, Move* moveList) {
 
     static_assert(Type != LEGAL, "Unsupported type in generate_all()");
 
-    const Square ksq = pos.square<KING>(Us);
+    const Square ksq = pos.king_square(Us);
     Bitboard     target;
 
     // Skip generating non-king moves when in double check
@@ -294,7 +294,7 @@ Move* generate<LEGAL>(const Position& pos, Move* moveList) {
 
     Color    us     = pos.side_to_move();
     Bitboard pinned = pos.blockers_for_king(us) & pos.pieces(us);
-    Square   ksq    = pos.square<KING>(us);
+    Square   ksq    = pos.king_square(us);
     Move*    cur    = moveList;
 
     moveList =
