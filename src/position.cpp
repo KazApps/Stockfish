@@ -696,7 +696,6 @@ bool Position::gives_check(Move m) const {
 // will be prefetched, and likewise for shared history.
 void Position::do_move(Move                      m,
                        StateInfo&                newSt,
-                       bool                      givesCheck,
                        DirtyPiece&               dp,
                        DirtyThreats&             dts,
                        const TranspositionTable* tt      = nullptr,
@@ -895,8 +894,8 @@ void Position::do_move(Move                      m,
     // Set capture piece
     st->capturedPiece = captured;
 
-    // Calculate checkers bitboard (if move gives check)
-    st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
+    // Calculate checkers bitboard
+    st->checkersBB = attackers_to(square<KING>(them)) & pieces(us);
 
     sideToMove = ~sideToMove;
 
