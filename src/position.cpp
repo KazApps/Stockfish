@@ -1055,7 +1055,7 @@ void Position::undo_move(Move m) {
 template<bool PutPiece>
 inline void add_dirty_threat(
   DirtyThreats* const dts, Piece pc, Piece threatened, Square s, Square threatenedSq) {
-    if (PutPiece)
+    if constexpr (PutPiece)
     {
         dts->threatenedSqs |= square_bb(threatenedSq);
         dts->threateningSqs |= square_bb(s);
@@ -1226,7 +1226,7 @@ void Position::do_castling(Color               us,
 
     assert(!Do || dp);
 
-    if (Do)
+    if constexpr (Do)
     {
         dp->to        = to;
         dp->remove_pc = dp->add_pc = make_piece(us, ROOK);
@@ -1519,7 +1519,7 @@ bool Position::pos_is_ok() const {
         || (ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6))
         assert(0 && "pos_is_ok: Default");
 
-    if (Fast)
+    if constexpr (Fast)
         return true;
 
     if (pieceCount[W_KING] != 1 || pieceCount[B_KING] != 1

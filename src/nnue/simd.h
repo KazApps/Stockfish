@@ -400,13 +400,13 @@ class SIMDTiling {
         static_assert(RegisterSize % LaneSize == 0);
         static_assert((NumLanes * LaneSize) % RegisterSize == 0);
 
-        const int ideal = (NumLanes * LaneSize) / RegisterSize;
-        if (ideal <= MaxRegisters)
-            return ideal;
+        constexpr int Ideal = (NumLanes * LaneSize) / RegisterSize;
+        if constexpr (Ideal <= MaxRegisters)
+            return Ideal;
 
         // Look for the largest divisor of the ideal register count that is smaller than MaxRegisters
         for (int divisor = MaxRegisters; divisor > 1; --divisor)
-            if (ideal % divisor == 0)
+            if (Ideal % divisor == 0)
                 return divisor;
 
         return 1;

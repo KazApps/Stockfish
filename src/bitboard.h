@@ -80,7 +80,7 @@ struct Magic {
 #ifdef USE_PEXT
         return unsigned(pext(occupied, mask));
 #else
-        if (Is64Bit)
+        if constexpr (Is64Bit)
             return unsigned(((occupied & mask) * magic) >> shift);
 
         unsigned lo = unsigned(occupied) & unsigned(mask);

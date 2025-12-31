@@ -664,7 +664,7 @@ Value Search::Worker::search(
     if (PvNode && selDepth < ss->ply + 1)
         selDepth = ss->ply + 1;
 
-    if (!rootNode)
+    if constexpr (!rootNode)
     {
         // Step 2. Check for aborted search and immediate draw
         if (threads.stop.load(std::memory_order_relaxed) || pos.is_draw(ss->ply)
@@ -836,7 +836,7 @@ Value Search::Worker::search(
                     return value;
                 }
 
-                if (PvNode)
+                if constexpr (PvNode)
                 {
                     if (b == BOUND_LOWER)
                         bestValue = value, alpha = std::max(alpha, bestValue);
@@ -1020,7 +1020,7 @@ moves_loop:  // When in check, search starts here
             main_manager()->updates.onIter(
               {depth, UCIEngine::move(move, pos.is_chess960()), moveCount + pvIdx});
         }
-        if (PvNode)
+        if constexpr (PvNode)
             (ss + 1)->pv = nullptr;
 
         extension  = 0;
@@ -1296,7 +1296,7 @@ moves_loop:  // When in check, search starts here
         if (threads.stop.load(std::memory_order_relaxed))
             return VALUE_ZERO;
 
-        if (rootNode)
+        if constexpr (rootNode)
         {
             RootMove& rm = *std::find(rootMoves.begin(), rootMoves.end(), move);
 
@@ -1360,7 +1360,7 @@ moves_loop:  // When in check, search starts here
             {
                 bestMove = move;
 
-                if (PvNode && !rootNode)  // Update pv even in fail-high case
+                if constexpr (PvNode && !rootNode)  // Update pv even in fail-high case
                     update_pv(ss->pv, move, (ss + 1)->pv);
 
                 if (value >= beta)
@@ -1411,7 +1411,7 @@ moves_loop:  // When in check, search starts here
     {
         update_all_stats(pos, ss, *this, bestMove, prevSq, quietsSearched, capturesSearched, depth,
                          ttData.move, moveCount);
-        if (!PvNode)
+        if constexpr (!PvNode)
             ttMoveHistory << (bestMove == ttData.move ? 809 : -865);
     }
 
@@ -1447,7 +1447,7 @@ moves_loop:  // When in check, search starts here
         captureHistory[pos.piece_on(prevSq)][prevSq][type_of(capturedPiece)] << 1012;
     }
 
-    if (PvNode)
+    if constexpr (PvNode)
         bestValue = std::min(bestValue, maxValue);
 
     // If no good move is found and the previous position was ttPv, then the previous
@@ -1514,7 +1514,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
     int   moveCount;
 
     // Step 1. Initialize node
-    if (PvNode)
+    if constexpr (PvNode)
     {
         (ss + 1)->pv = pv;
         ss->pv[0]    = Move::none();
@@ -1678,7 +1678,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
             {
                 bestMove = move;
 
-                if (PvNode)  // Update pv even in fail-high case
+                if constexpr (PvNode)  // Update pv even in fail-high case
                     update_pv(ss->pv, move, (ss + 1)->pv);
 
                 if (value < beta)  // Update alpha here!
