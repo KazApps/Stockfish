@@ -346,7 +346,15 @@ class Worker {
     NumaReplicatedAccessToken numaAccessToken;
 
     // Reductions lookup table initialized at startup
-    std::array<int, MAX_MOVES> reductions;  // [depth or moveNumber]
+    // [depth or moveNumber]
+    static constexpr auto Reductions = []() constexpr {
+        std::array<int, MAX_MOVES> res{};
+
+        for (size_t i = 1; i < res.size(); ++i)
+            res[i] = int(2747 / 128.0 * std::log(i));
+
+        return res;
+    }();
 
     // The main thread has a SearchManager, the others have a NullSearchManager
     std::unique_ptr<ISearchManager> manager;
