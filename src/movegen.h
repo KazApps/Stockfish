@@ -65,7 +65,7 @@ struct MoveList {
     bool        contains(Move move) const { return std::find(begin(), end(), move) != end(); }
 
    private:
-    Move moveList[MAX_MOVES], *last;
+    Move moveList[MAX_MOVES - 4], *last;
 };
 
 }  // namespace Stockfish
