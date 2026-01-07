@@ -639,11 +639,12 @@ bool Position::gives_check(Move m) const {
     assert(m.is_ok());
     assert(color_of(moved_piece(m)) == sideToMove);
 
+    Square ksq  = square<KING>(~sideToMove);
     Square from = m.from_sq();
     Square to   = m.to_sq();
 
     // Is there a direct check?
-    if (check_squares(type_of(piece_on(from))) & to)
+    if (attacks_bb(piece_on(from), to, pieces()) & ksq)
         return true;
 
     // Is there a discovered check?
@@ -674,7 +675,7 @@ bool Position::gives_check(Move m) const {
         // Castling is encoded as 'king captures the rook'
         Square rto = relative_square(sideToMove, to > from ? SQ_F1 : SQ_D1);
 
-        return check_squares(ROOK) & rto;
+        return attacks_bb<ROOK>(rto, pieces()) & ksq;
     }
     }
 }
