@@ -54,7 +54,7 @@ struct StateInfo {
     Key    key;
 
     // Not copied when making a move (will be recomputed anyhow)
-    Bitboard   checkersBB;
+    Bitboard checkersBB;
 
     // Not copied when making a null move
     StateInfo* previous;
