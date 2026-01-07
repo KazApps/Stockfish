@@ -51,12 +51,10 @@ struct StateInfo {
     int    rule50;
     int    pliesFromNull;
     Square epSquare;
-    Key    key;
 
     // Not copied when making a move (will be recomputed anyhow)
-    Bitboard checkersBB;
-
-    // Not copied when making a null move
+    Key        key;
+    Bitboard   checkersBB;
     StateInfo* previous;
     Bitboard   blockersForKing[COLOR_NB];
     Bitboard   pinners[COLOR_NB];
@@ -65,6 +63,7 @@ struct StateInfo {
     int        repetition;
 };
 
+static_assert(offsetof(StateInfo, key) == 64);
 
 // A list to keep track of the position states along the setup moves (from the
 // start position to the position just before the search starts). Needed by
