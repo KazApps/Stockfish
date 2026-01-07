@@ -55,13 +55,13 @@ struct StateInfo {
 
     // Not copied when making a move (will be recomputed anyhow)
     Bitboard   checkersBB;
-    StateInfo* previous;
-    Piece      capturedPiece;
 
-    // Not copied when making a null move (will be recomputed anyhow)
+    // Not copied when making a null move
+    StateInfo* previous;
     Bitboard   blockersForKing[COLOR_NB];
     Bitboard   pinners[COLOR_NB];
     Bitboard   checkSquares[PIECE_TYPE_NB];
+    Piece      capturedPiece;
     int        repetition;
 };
 

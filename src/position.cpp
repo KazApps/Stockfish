@@ -1247,10 +1247,11 @@ void Position::do_null_move(StateInfo& newSt, const TranspositionTable& tt) {
     assert(!checkers());
     assert(&newSt != st);
 
-    std::memcpy(&newSt, st, offsetof(StateInfo, blockersForKing));
+    std::memcpy(&newSt, st, offsetof(StateInfo, previous));
 
     newSt.previous = st;
     st             = &newSt;
+    st->capturedPiece = NO_PIECE;
 
     if (st->epSquare != SQ_NONE)
     {
