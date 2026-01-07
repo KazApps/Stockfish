@@ -1249,7 +1249,7 @@ void Position::do_null_move(StateInfo& newSt, const TranspositionTable& tt) {
     assert(!checkers());
     assert(&newSt != st);
 
-    std::memcpy(&newSt, st, sizeof(StateInfo));
+    std::memcpy(&newSt, st, offsetof(StateInfo, previous));
 
     newSt.previous = st;
     st             = &newSt;
