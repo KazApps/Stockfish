@@ -39,7 +39,7 @@ struct SharedHistories;
 // its previous state when we retract a move. Whenever a move is made on the
 // board (by calling Position::do_move), a StateInfo object must be passed.
 
-struct alignas(64) StateInfo {
+struct StateInfo {
 
     // Copied when making a move
     Key    materialKey;
@@ -61,8 +61,11 @@ struct alignas(64) StateInfo {
     Bitboard   checkSquares[PIECE_TYPE_NB];
     Piece      capturedPiece;
     int        repetition;
+
+    uint64_t padding[8];
 };
 
+static_assert(sizeof(StateInfo) == 256);
 static_assert(offsetof(StateInfo, key) == 64);
 
 // A list to keep track of the position states along the setup moves (from the
