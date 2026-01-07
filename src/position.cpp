@@ -705,14 +705,14 @@ void Position::do_move(Move                      m,
     assert(m.is_ok());
     assert(&newSt != st);
 
-    Key k = st->key ^ Zobrist::side;
-
     // Copy some fields of the old state to our new StateInfo object except the
     // ones which are going to be recalculated from scratch anyway and then switch
     // our state pointer to point to the new (ready to be updated) state.
-    std::memcpy(&newSt, st, offsetof(StateInfo, key));
+    std::memcpy(&newSt, st, offsetof(StateInfo, checkersBB));
     newSt.previous = st;
     st             = &newSt;
+
+    st->key ^= Zobrist::side;
 
     // Increment ply counters. In particular, rule50 will be reset to zero later on
     // in case of a capture or a pawn move.
@@ -749,7 +749,7 @@ void Position::do_move(Move                      m,
         Square rfrom, rto;
         do_castling<true>(us, from, to, rfrom, rto, &dts, &dp);
 
-        k ^= Zobrist::psq[captured][rfrom] ^ Zobrist::psq[captured][rto];
+        st->key ^= Zobrist::psq[captured][rfrom] ^ Zobrist::psq[captured][rto];
         st->nonPawnKey[us] ^= Zobrist::psq[captured][rfrom] ^ Zobrist::psq[captured][rto];
         captured = NO_PIECE;
     }
@@ -789,7 +789,7 @@ void Position::do_move(Move                      m,
         dp.remove_pc = captured;
         dp.remove_sq = capsq;
 
-        k ^= Zobrist::psq[captured][capsq];
+        st->key ^= Zobrist::psq[captured][capsq];
         st->materialKey ^=
           Zobrist::psq[captured][8 + pieceCount[captured] - (m.type_of() != EN_PASSANT)];
 
@@ -800,21 +800,21 @@ void Position::do_move(Move                      m,
         dp.remove_sq = SQ_NONE;
 
     // Update hash key
-    k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+    st->key ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
 
     // Reset en passant square
     if (st->epSquare != SQ_NONE)
     {
-        k ^= Zobrist::enpassant[file_of(st->epSquare)];
+        st->key ^= Zobrist::enpassant[file_of(st->epSquare)];
         st->epSquare = SQ_NONE;
     }
 
     // Update castling rights if needed
     if (st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
     {
-        k ^= Zobrist::castling[st->castlingRights];
+        st->key ^= Zobrist::castling[st->castlingRights];
         st->castlingRights &= ~(castlingRightsMask[from] | castlingRightsMask[to]);
-        k ^= Zobrist::castling[st->castlingRights];
+        st->key ^= Zobrist::castling[st->castlingRights];
     }
 
     // Move the piece. The tricky Chess960 castling is handled earlier
@@ -852,7 +852,7 @@ void Position::do_move(Move                      m,
 
             // Update hash keys
             // Zobrist::psq[pc][to] is zero, so we don't need to clear it
-            k ^= Zobrist::psq[promotion][to];
+            st->key ^= Zobrist::psq[promotion][to];
             st->materialKey ^= Zobrist::psq[promotion][8 + pieceCount[promotion] - 1]
                              ^ Zobrist::psq[pc][8 + pieceCount[pc]];
             st->nonPawnKey[us] ^= Zobrist::psq[promotion][to];
@@ -881,7 +881,7 @@ void Position::do_move(Move                      m,
 
     // If en passant is impossible, then k will not change and we can prefetch earlier
     if (tt && !checkEP)
-        prefetch(tt->first_entry(adjust_key50(k)));
+        prefetch(tt->first_entry(adjust_key50(st->key)));
 
     if (history)
     {
@@ -908,7 +908,7 @@ void Position::do_move(Move                      m,
     {
         auto updateEpSquare = [&] {
             st->epSquare = to - pawn_push(us);
-            k ^= Zobrist::enpassant[file_of(st->epSquare)];
+            st->key ^= Zobrist::enpassant[file_of(st->epSquare)];
         };
 
         Bitboard pawns = attacks_bb<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN);
@@ -955,8 +955,6 @@ void Position::do_move(Move                      m,
         break;
     }
 
-    // Update the key with the final value
-    st->key = k;
     if (tt)
         prefetch(tt->first_entry(key()));
 
