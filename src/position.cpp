@@ -1251,7 +1251,6 @@ void Position::do_null_move(StateInfo& newSt, const TranspositionTable& tt) {
 
     newSt.previous = st;
     st             = &newSt;
-    st->capturedPiece = NO_PIECE;
 
     if (st->epSquare != SQ_NONE)
     {
@@ -1263,6 +1262,7 @@ void Position::do_null_move(StateInfo& newSt, const TranspositionTable& tt) {
     prefetch(tt.first_entry(key()));
 
     st->pliesFromNull = 0;
+    st->capturedPiece = NO_PIECE;
 
     sideToMove = ~sideToMove;
 
