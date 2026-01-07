@@ -127,8 +127,6 @@ class Position {
 
     Bitboard blockers_for_king(Color c) const;
 
-    Bitboard check_squares(PieceType pt) const;
-
     Bitboard pinners(Color c) const;
 
     // Attacks to/from a given square
@@ -353,29 +351,6 @@ inline Bitboard Position::checkers() const { return st->checkersBB; }
 inline Bitboard Position::blockers_for_king(Color c) const { return st->blockersForKing[c]; }
 
 inline Bitboard Position::pinners(Color c) const { return st->pinners[c]; }
-
-inline Bitboard Position::check_squares(PieceType pt) const {
-    const auto ksq = square<KING>(~sideToMove);
-
-    switch (pt)
-    {
-    case PAWN :
-        return attacks_bb<PAWN>(ksq, ~sideToMove);
-    case KNIGHT :
-        return attacks_bb<KNIGHT>(ksq, ~sideToMove);
-    case BISHOP :
-        return attacks_bb<BISHOP>(ksq, pieces());
-    case ROOK :
-        return attacks_bb<ROOK>(ksq, pieces());
-    case QUEEN :
-        return check_squares(BISHOP) | check_squares(ROOK);
-    case KING :
-        return 0;
-    default :
-        assert(false);
-        return 0;
-    }
-}
 
 inline Key Position::key() const { return adjust_key50(st->key); }
 
