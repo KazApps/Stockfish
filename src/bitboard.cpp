@@ -37,8 +37,7 @@ alignas(64) Magic Magics[SQUARE_NB][2];
 
 namespace {
 
-Bitboard RookTable[0x19000];   // To store rook attacks
-Bitboard BishopTable[0x1480];  // To store bishop attacks
+Bitboard RookBishopTable[0x19000 + 0x1480];   // To store rook and bishop attacks
 
 void init_magics(PieceType pt, Bitboard table[], Magic magics[][2]);
 }
@@ -73,8 +72,8 @@ void Bitboards::init() {
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             SquareDistance[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
 
-    init_magics(ROOK, RookTable, Magics);
-    init_magics(BISHOP, BishopTable, Magics);
+    init_magics(ROOK, RookBishopTable + 0, Magics);
+    init_magics(BISHOP, RookBishopTable + 0x19000, Magics);
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
