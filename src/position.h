@@ -204,7 +204,7 @@ class Position {
     Key  adjust_key50(Key k) const;
 
     // Data members
-    std::array<Piece, SQUARE_NB>        board;
+    alignas(32) std::array<Piece, SQUARE_NB>        board;
     std::array<Bitboard, PIECE_TYPE_NB> byTypeBB;
     std::array<Bitboard, COLOR_NB>      byColorBB;
 
