@@ -134,14 +134,13 @@ class ValueList {
 
    public:
     std::size_t size() const { return size_; }
-    int         ssize() const { return int(size_); }
     void        push_back(const T& value) {
         assert(size_ < MaxSize);
         values_[size_++] = value;
     }
     const T* begin() const { return values_; }
     const T* end() const { return values_ + size_; }
-    const T& operator[](int index) const { return values_[index]; }
+    const T& operator[](uint32_t index) const { return values_[index]; }
 
     T* make_space(size_t count) {
         T* result = &values_[size_];
