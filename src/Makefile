@@ -676,8 +676,6 @@ ifeq ($(optimize),yes)
 	ifeq ($(comp),gcc)
 		ifeq ($(gccisclang),)
 			CXXFLAGS += -fipa-pta
-		else
-$(error GCC only)
 		endif
 		ifeq ($(OS), Android)
 			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
