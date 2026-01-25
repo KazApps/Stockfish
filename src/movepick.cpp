@@ -66,12 +66,16 @@ void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
     if (n == 0 || n == 1)
         return;
 
-    if (n == 2) {
-        if (begin[0] < begin[1]) std::swap(begin[0], begin[1]);
+    if (n == 2)
+    {
+        if (begin[0] < begin[1])
+            std::swap(begin[0], begin[1]);
+
         return;
     }
 
-    if (n == 3) {
+    if (n == 3)
+    {
         ExtMove* a = begin;
         ExtMove* b = begin + 1;
         ExtMove* c = begin + 2;
@@ -88,7 +92,8 @@ void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) {
         return;
     }
 
-    if (n == 4) {
+    if (n == 4)
+    {
         ExtMove* a = begin;
         ExtMove* b = begin + 1;
         ExtMove* c = begin + 2;
