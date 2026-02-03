@@ -1180,6 +1180,12 @@ moves_loop:  // When in check, search starts here
                 extension = -2;
         }
 
+        if (is_valid(ttData.value) && extension == 0 && moveCount < 3 && !ss->inCheck && ss->staticEval <= alpha - 26
+            && (ttData.bound == BOUND_LOWER))
+        {
+            extension = 1;
+        }
+
         // Step 16. Make the move
         do_move(pos, move, st, givesCheck, ss);
 
