@@ -96,9 +96,7 @@ int Eval::complexity(const Eval::NNUE::Networks&    networks,
 
     assert(!pos.checkers());
 
-    auto [psqt, positional] = use_smallnet(pos)
-                              ? networks.small.evaluate(pos, accumulators, caches.small)
-                              : networks.big.evaluate(pos, accumulators, caches.big);
+    auto [psqt, positional] = networks.big.evaluate(pos, accumulators, caches.big);
 
     return std::abs(psqt - positional);
 }
