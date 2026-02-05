@@ -486,6 +486,18 @@ void Search::Worker::iterative_deepening() {
         // Do we have time for the next iteration? Can we stop searching now?
         if (limits.use_time_management() && !threads.stop && !mainThread->stopOnPonderhit)
         {
+            const auto&            moves    = rootMoves[0].pv;
+            const auto             numMoves = moves.size();
+            std::vector<StateInfo> states(numMoves);
+
+            for (size_t i = 0; i < numMoves; ++i)
+                rootPos.do_move(moves[i], states[i]);
+
+            const auto nnueComplexity = rootPos.checkers() ? -1 : complexity(rootPos);
+
+            for (size_t i = 1; i <= numMoves; ++i)
+                rootPos.undo_move(moves[numMoves - i]);
+
             uint64_t nodesEffort =
               rootMoves[0].effort * 100000 / std::max(size_t(1), size_t(nodes));
 
@@ -508,6 +520,9 @@ void Search::Worker::iterative_deepening() {
 
             double totalTime = mainThread->tm.optimum() * fallingEval * reduction
                              * bestMoveInstability * highBestMoveEffort;
+
+            if (nnueComplexity != -1)
+                totalTime *= 0.95 + std::log10(1.0 + nnueComplexity / 1536.0);
 
             // Cap used time in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
