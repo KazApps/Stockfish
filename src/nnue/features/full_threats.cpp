@@ -196,9 +196,9 @@ constexpr auto init_fused_luts() {
         {
             for (Square from = SQ_A1; from <= SQ_H8; ++from) {
                 for (Square to = SQ_A1; to <= SQ_H8; ++to) {
-                    indices[attacker][attacked][from][to] = index_lut1[attacker][attacked][from < to]
+                    indices[attacker][attacked][from][to] = std::min(index_lut1[attacker][attacked][from < to]
          + offsets[attacker][from]
-         + index_lut2[attacker][from][to];
+         + index_lut2[attacker][from][to], FullThreats::Dimensions);
                 }
             }
         }
@@ -220,7 +220,9 @@ inline sf_always_inline IndexType FullThreats::make_index(
     unsigned    attacker_oriented = attacker ^ swap;
     unsigned    attacked_oriented = attacked ^ swap;
 
-    return fused_luts[attacker_oriented][attacked_oriented][from_oriented][to_oriented];
+    const auto index = fused_luts[attacker_oriented][attacked_oriented][from_oriented][to_oriented];
+    sf_assume(index <= Dimensions);
+    return index;
 }
 
 // Get a list of indices for active features in ascending order
