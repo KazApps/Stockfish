@@ -51,6 +51,10 @@ Value evaluate(const NNUE::Networks&          networks,
                Eval::NNUE::AccumulatorStack&  accumulators,
                Eval::NNUE::AccumulatorCaches& caches,
                int                            optimism);
+int   complexity(const NNUE::Networks&          networks,
+                 const Position&                pos,
+                 Eval::NNUE::AccumulatorStack&  accumulators,
+                 Eval::NNUE::AccumulatorCaches& caches);
 }  // namespace Eval
 
 }  // namespace Stockfish

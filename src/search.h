@@ -327,6 +327,7 @@ class Worker {
     TimePoint elapsed_time() const;
 
     Value evaluate(const Position&);
+    int complexity(const Position&);
 
     LimitsType limits;
 

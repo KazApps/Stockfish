@@ -89,6 +89,20 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
     return v;
 }
 
+int Eval::complexity(const Eval::NNUE::Networks&    networks,
+                     const Position&                pos,
+                     Eval::NNUE::AccumulatorStack&  accumulators,
+                     Eval::NNUE::AccumulatorCaches& caches) {
+
+    assert(!pos.checkers());
+
+    auto [psqt, positional] = use_smallnet(pos)
+                              ? networks.small.evaluate(pos, accumulators, caches.small)
+                              : networks.big.evaluate(pos, accumulators, caches.big);
+
+    return std::abs(psqt - positional);
+}
+
 // Like evaluate(), but instead of returning a value, it returns
 // a string (suitable for outputting to stdout) that contains the detailed
 // descriptions and values of each evaluation term. Useful for debugging.

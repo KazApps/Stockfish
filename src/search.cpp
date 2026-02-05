@@ -193,7 +193,7 @@ void Search::Worker::start_searching() {
     }
 
     main_manager()->tm.init(limits, rootPos.side_to_move(), rootPos.game_ply(), options,
-                            main_manager()->originalTimeAdjust);
+                            main_manager()->originalTimeAdjust, complexity(rootPos));
     tt.new_search();
 
     if (rootMoves.empty())
@@ -1755,6 +1755,10 @@ TimePoint Search::Worker::elapsed_time() const { return main_manager()->tm.elaps
 Value Search::Worker::evaluate(const Position& pos) {
     return Eval::evaluate(networks[numaAccessToken], pos, accumulatorStack, refreshTable,
                           optimism[pos.side_to_move()]);
+}
+
+int Search::Worker::complexity(const Position& pos) {
+    return Eval::complexity(networks[numaAccessToken], pos, accumulatorStack, refreshTable);
 }
 
 namespace {

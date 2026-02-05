@@ -48,7 +48,8 @@ void TimeManagement::init(Search::LimitsType& limits,
                           Color               us,
                           int                 ply,
                           const OptionsMap&   options,
-                          double&             originalTimeAdjust) {
+                          double&             originalTimeAdjust,
+                          int                 nnueComplexity) {
     TimePoint npmsec = TimePoint(options["nodestime"]);
 
     // If we have no time, we don't need to fully initialize TM.
@@ -129,7 +130,8 @@ void TimeManagement::init(Search::LimitsType& limits,
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = TimePoint(optScale * timeLeft);
+    optimumTime =
+      TimePoint(optScale * timeLeft * (0.95 + std::log10(1.0 + nnueComplexity / 1536.0)));
     maximumTime =
       TimePoint(std::min(0.825179 * limits.time[us] - moveOverhead, maxScale * optimumTime)) - 10;
 
