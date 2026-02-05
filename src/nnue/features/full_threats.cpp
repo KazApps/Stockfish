@@ -188,17 +188,22 @@ constexpr auto init_fused_luts() {
     // [attacker][from][to]
     constexpr auto index_lut2 = index_lut2_array();
 
-    std::array<std::array<std::array<std::array<uint32_t, SQUARE_NB>, SQUARE_NB>, PIECE_NB>, PIECE_NB> indices{};
+    std::array<std::array<std::array<std::array<uint32_t, SQUARE_NB>, SQUARE_NB>, PIECE_NB>,
+               PIECE_NB>
+      indices{};
 
     for (Piece attacker : AllPieces)
     {
         for (Piece attacked : AllPieces)
         {
-            for (Square from = SQ_A1; from <= SQ_H8; ++from) {
-                for (Square to = SQ_A1; to <= SQ_H8; ++to) {
-                    indices[attacker][attacked][from][to] = std::min(index_lut1[attacker][attacked][from < to]
-         + offsets[attacker][from]
-         + index_lut2[attacker][from][to], FullThreats::Dimensions);
+            for (Square from = SQ_A1; from <= SQ_H8; ++from)
+            {
+                for (Square to = SQ_A1; to <= SQ_H8; ++to)
+                {
+                    indices[attacker][attacked][from][to] =
+                      std::min(index_lut1[attacker][attacked][from < to] + offsets[attacker][from]
+                                 + index_lut2[attacker][from][to],
+                               FullThreats::Dimensions);
                 }
             }
         }
