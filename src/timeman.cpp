@@ -129,11 +129,11 @@ void TimeManagement::init(Search::LimitsType& limits,
         maxScale = 1.3 + 0.11 * (centiMTG / 100.0);
     }
 
+    if (nnueComplexity != -1)
+        optScale *= 0.95 + std::log10(1.0 + nnueComplexity / 1536.0);
+
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(optScale * timeLeft);
-
-    if (nnueComplexity != -1)
-        optimumTime *= 0.95 + std::log10(1.0 + nnueComplexity / 1536.0);
 
     maximumTime =
       TimePoint(std::min(0.825179 * limits.time[us] - moveOverhead, maxScale * optimumTime)) - 10;
