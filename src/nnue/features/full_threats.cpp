@@ -153,7 +153,7 @@ constexpr auto helper_offsets = init_threat_offsets().first;
 constexpr auto offsets = init_threat_offsets().second;
 
 constexpr auto init_index_luts() {
-    std::array<std::array<std::array<uint32_t, 2>, PIECE_NB>, PIECE_NB> indices{};
+    std::array<std::array<std::array<uint32_t, 2>, PIECE_NB - 1>, PIECE_NB> indices{};
 
     for (Piece attacker : AllPieces)
     {
@@ -162,6 +162,9 @@ constexpr auto init_index_luts() {
             bool      enemy        = (attacker ^ attacked) == 8;
             PieceType attackerType = type_of(attacker);
             PieceType attackedType = type_of(attacked);
+
+            if (attackedType == KING)
+                continue;
 
             int  map           = FullThreats::map[attackerType - 1][attackedType - 1];
             bool semi_excluded = attackerType == attackedType && (enemy || attackerType != PAWN);
@@ -190,6 +193,9 @@ constexpr auto index_lut2 = index_lut2_array();
 // Index of a feature for a given king position and another piece on some square
 inline sf_always_inline IndexType FullThreats::make_index(
   Color perspective, Piece attacker, Square from, Square to, Piece attacked, Square ksq) {
+    if (type_of(attacked) == KING)
+        return Dimensions;
+
     const std::int8_t orientation   = OrientTBL[ksq] ^ (56 * perspective);
     unsigned          from_oriented = uint8_t(from) ^ orientation;
     unsigned          to_oriented   = uint8_t(to) ^ orientation;
