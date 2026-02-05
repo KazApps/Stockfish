@@ -179,13 +179,35 @@ constexpr auto init_index_luts() {
     return indices;
 }
 
-// The final index is calculated from summing data found in these two LUTs, as well
-// as offsets[attacker][from]
+constexpr auto init_fused_luts() {
+    // The final index is calculated from summing data found in these two LUTs, as well
+    // as offsets[attacker][from]
 
-// [attacker][attacked][from < to]
-constexpr auto index_lut1 = init_index_luts();
-// [attacker][from][to]
-constexpr auto index_lut2 = index_lut2_array();
+    // [attacker][attacked][from < to]
+    constexpr auto index_lut1 = init_index_luts();
+    // [attacker][from][to]
+    constexpr auto index_lut2 = index_lut2_array();
+
+    std::array<std::array<std::array<std::array<uint32_t, SQUARE_NB>, SQUARE_NB>, PIECE_NB>, PIECE_NB> indices{};
+
+    for (Piece attacker : AllPieces)
+    {
+        for (Piece attacked : AllPieces)
+        {
+            for (Square from = SQ_A1; from <= SQ_H8; ++from) {
+                for (Square to = SQ_A1; to <= SQ_H8; ++to) {
+                    indices[attacker][attacked][from][to] = index_lut1[attacker][attacked][from < to]
+         + offsets[attacker][from]
+         + index_lut2[attacker][from][to];
+                }
+            }
+        }
+    }
+
+    return indices;
+}
+
+constexpr auto fused_luts = init_fused_luts();
 
 // Index of a feature for a given king position and another piece on some square
 inline sf_always_inline IndexType FullThreats::make_index(
@@ -198,9 +220,7 @@ inline sf_always_inline IndexType FullThreats::make_index(
     unsigned    attacker_oriented = attacker ^ swap;
     unsigned    attacked_oriented = attacked ^ swap;
 
-    return index_lut1[attacker_oriented][attacked_oriented][from_oriented < to_oriented]
-         + offsets[attacker_oriented][from_oriented]
-         + index_lut2[attacker_oriented][from_oriented][to_oriented];
+    return fused_luts[attacker_oriented][attacked_oriented][from_oriented][to_oriented];
 }
 
 // Get a list of indices for active features in ascending order
