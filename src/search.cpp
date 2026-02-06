@@ -194,7 +194,7 @@ void Search::Worker::start_searching() {
 
     main_manager()->tm.init(limits, rootPos.side_to_move(), rootPos.game_ply(), options,
                             main_manager()->originalTimeAdjust,
-                            rootPos.checkers() ? -1 : complexity(rootPos));
+                            rootPos.checkers() ? 0 : complexity(rootPos));
     tt.new_search();
 
     if (rootMoves.empty())
