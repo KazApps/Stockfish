@@ -138,7 +138,7 @@ void FullThreats::append_active_indices(Color perspective, const Position& pos, 
             Piece     attacked = pos.piece_on(to);
             Piece     attacker = make_piece(c, PAWN);
             IndexType index    = make_index(perspective, attacker, from, to, attacked, ksq);
-            active.push_back_if_lt(index, Dimensions);
+            active.push_back_if(index, index < Dimensions);
         }
     };
 
@@ -164,7 +164,7 @@ void FullThreats::append_active_indices(Color perspective, const Position& pos, 
                     Square    to       = pop_lsb(attacks);
                     Piece     attacked = pos.piece_on(to);
                     IndexType index    = make_index(perspective, attacker, from, to, attacked, ksq);
-                    active.push_back_if_lt(index, Dimensions);
+                    active.push_back_if(index, index < Dimensions);
                 }
             }
         }
@@ -198,10 +198,11 @@ void FullThreats::append_changed_indices(Color                   perspective,
             prefetch<PrefetchRw::READ, PrefetchLoc::LOW>(reinterpret_cast<const void*>(
               reinterpret_cast<uintptr_t>(prefetchBase) + uintptr_t(index) * prefetchStride));
 
-        if (raw >> 31)
-            added.push_back_if_lt(index, Dimensions);
-        else
-            removed.push_back_if_lt(index, Dimensions);
+        const bool add = raw >> 31;
+        const auto valid = index < Dimensions;
+
+        added.push_back_if(index, add && valid);
+        removed.push_back_if(index, !add && valid);
     }
 }
 
@@ -242,16 +243,14 @@ void FullThreats::append_changed_indices_both(Square                  white_ksq,
               reinterpret_cast<uintptr_t>(prefetchBase) + uintptr_t(black_index) * prefetchStride));
         }
 
-        if (raw >> 31)
-        {
-            white_added.push_back_if_lt(white_index, Dimensions);
-            black_added.push_back_if_lt(black_index, Dimensions);
-        }
-        else
-        {
-            white_removed.push_back_if_lt(white_index, Dimensions);
-            black_removed.push_back_if_lt(black_index, Dimensions);
-        }
+        const bool add = raw >> 31;
+        const auto white_valid = white_index < Dimensions;
+        const auto black_valid = black_index < Dimensions;
+
+        white_added.push_back_if(white_index, add && white_valid);
+        white_removed.push_back_if(white_index, !add && white_valid);
+        black_added.push_back_if(black_index, add && black_valid);
+        black_removed.push_back_if(black_index, !add && black_valid);
     }
 }
 
