@@ -144,15 +144,6 @@ using ContinuationHistory = MultiArray<PieceToHistory, PIECE_NB, SQUARE_NB>;
 // PawnHistory is addressed by the pawn structure and a move's [piece][to]
 using PawnHistory = DynStats<AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>, PAWN_HISTORY_BASE_SIZE>;
 
-// Correction histories record differences between the static evaluation of
-// positions and their search score. It is used to improve the static evaluation
-// used by some search heuristics.
-// see https://www.chessprogramming.org/Static_Evaluation_Correction_History
-enum CorrHistType {
-    PieceTo,       // By [piece][to] move
-    Continuation,  // Combined history of move pairs
-};
-
 template<typename T, int D>
 struct CorrectionBundle {
     StatsEntry<T, D, true> pawn;
@@ -168,29 +159,9 @@ struct CorrectionBundle {
     }
 };
 
-namespace Detail {
-
-template<CorrHistType>
-struct CorrHistTypedef;
-
-template<>
-struct CorrHistTypedef<PieceTo> {
-    using type = Stats<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
-};
-
-template<>
-struct CorrHistTypedef<Continuation> {
-    using type = MultiArray<CorrHistTypedef<PieceTo>::type, PIECE_NB, SQUARE_NB>;
-};
-
-}
-
 using UnifiedCorrectionHistory =
   DynStats<MultiArray<CorrectionBundle<i16, CORRECTION_HISTORY_LIMIT>, COLOR_NB>,
            CORRHIST_BASE_SIZE>;
-
-template<CorrHistType T>
-using CorrectionHistory = typename Detail::CorrHistTypedef<T>::type;
 
 using TTMoveHistory = StatsEntry<i16, 8192>;
 
