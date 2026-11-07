@@ -95,7 +95,7 @@ template<typename T, int SizeMultiplier>
 struct DynStats {
     explicit DynStats(usize s) :
         size(s * SizeMultiplier),
-        data(make_unique_large_page<T[]>(size)) {}
+        data(make_unique_large_page<T[]>(size)) { }
     // Sets all values in the range to 0
     void clear_range(int value, usize threadIdx, usize numaTotal) {
         usize start = u64(threadIdx) * size / numaTotal;
@@ -150,12 +150,14 @@ struct CorrectionBundle {
     StatsEntry<T, D, true> minor;
     StatsEntry<T, D, true> nonPawnWhite;
     StatsEntry<T, D, true> nonPawnBlack;
+    StatsEntry<T, D, true> cont;
 
     void fill(T val) {
         pawn         = val;
         minor        = val;
         nonPawnWhite = val;
         nonPawnBlack = val;
+        cont         = val;
     }
 };
 
@@ -214,6 +216,13 @@ struct SharedHistories {
     template<Color c>
     const auto& nonpawn_correction_entry(const Position& pos) const {
         return correctionHistory[pos.non_pawn_key(c) & sizeMinus1];
+    }
+
+    auto& continuation_correction_entry(Key key) {
+        return correctionHistory[key & sizeMinus1];
+    }
+    const auto& continuation_correction_entry(Key key) const {
+        return correctionHistory[key & sizeMinus1];
     }
 
     UnifiedCorrectionHistory               correctionHistory;

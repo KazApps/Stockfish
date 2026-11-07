@@ -92,14 +92,17 @@ const std::array<int, MAX_MOVES> reductions = [] {
 // (*Scaler) All tuned parameters at time controls shorter than
 // optimized for require verifications at longer time controls.
 
-int correction_value(const Worker& w, const Position& pos) {
+int correction_value(const Worker& w, const Position& pos, const Stack* const ss) {
+    const auto  k0 = ss->key, k1 = (ss - 1)->key;
     const auto& shared = w.sharedHistory;
+
     const int   pcv    = shared.pawn_correction_entry(pos).pawn;
     const int   micv   = shared.minor_piece_correction_entry(pos).minor;
     const int   wnpcv  = shared.nonpawn_correction_entry<WHITE>(pos).nonPawnWhite;
     const int   bnpcv  = shared.nonpawn_correction_entry<BLACK>(pos).nonPawnBlack;
+    const int   cntcv  = k1 ? 8000 * shared.continuation_correction_entry(k0 ^ k1).cont : 0;
 
-    return 13806 * pcv + 9512 * micv + 11615 * (wnpcv + bnpcv);
+    return 13806 * pcv + 9512 * micv + 11615 * (wnpcv + bnpcv) + cntcv;
 }
 
 // Add correctionHistory value to raw staticEval and guarantee evaluation
@@ -109,6 +112,7 @@ Value to_corrected_static_eval(const Value v, const int cv) {
 }
 
 void update_correction_history(const Position& pos,
+                               Stack* const    ss,
                                Search::Worker& workerThread,
                                const int       bonus) {
     constexpr int nonPawnWeight = 186;
@@ -118,6 +122,11 @@ void update_correction_history(const Position& pos,
     shared.minor_piece_correction_entry(pos).minor << bonus * 150 / 128;
     shared.nonpawn_correction_entry<WHITE>(pos).nonPawnWhite << bonus * nonPawnWeight / 128;
     shared.nonpawn_correction_entry<BLACK>(pos).nonPawnBlack << bonus * nonPawnWeight / 128;
+
+    const auto k0 = ss->key, k1 = (ss - 1)->key;
+
+    if (k1)
+        shared.continuation_correction_entry(k0 ^ k1).cont << bonus * 130 / 128;
 }
 
 // Add a small random component to draw evaluations to avoid 3-fold blindness
@@ -126,7 +135,7 @@ Value value_to_tt(Value v, int ply);
 Value value_from_tt(Value v, int ply, int r50c);
 void  update_continuation_histories(Stack* ss, Piece pc, Square to, int bonus);
 void  update_quiet_histories(
-   const Position& pos, Stack* ss, Search::Worker& workerThread, Move move, int bonus);
+  const Position& pos, Stack* ss, Search::Worker& workerThread, Move move, int bonus);
 void update_all_stats(const Position& pos,
                       Stack*          ss,
                       Search::Worker& workerThread,
@@ -211,7 +220,7 @@ void Search::Worker::start_searching() {
     // GUI sends a "stop" or "ponderhit" command. We therefore simply wait here
     // until the GUI sends one of those commands.
     while (!threads.stop && (main_manager()->ponder || limits.infinite))
-    {}
+    { }
 
     // Stop the threads if not already stopped (also raise the stop if "ponderhit"
     // just reset threads.ponder).
@@ -278,11 +287,16 @@ bool Search::Worker::iterative_deepening() {
     Stack  stack[MAX_PLY + 10] = {};
     Stack* ss                  = stack + 7;
 
-    for (int i = 7; i > 0; --i)
+    auto st = rootPos.state();
+    ss->key = st->key;
+
+    for (int i = 1; i <= 7; ++i)
     {
         (ss - i)->continuationHistory =
           &continuationHistory[0][0][NO_PIECE][0];  // Use as a sentinel
-        (ss - i)->staticEval                    = VALUE_NONE;
+        (ss - i)->staticEval = VALUE_NONE;
+        st                   = st ? st->previous : nullptr;
+        (ss - i)->key        = st ? st->key : 0;
     }
 
     for (int i = 0; i <= MAX_PLY + 2; ++i)
@@ -652,25 +666,25 @@ void Search::Worker::do_move(Position&    pos,
     // The correction-history prefetches also approximate castling and promotion.
     // For these rare moves the prefetches land on unused lines.
     prefetch(tt.get_cluster(pos.prefetch_key(move)));
+    prefetch(&sharedHistory.continuation_correction_entry(pos.move_key(move)).cont);
 
     ++nodes;
 
     Dirties& dirties = accumulatorStack.push(pos);
     pos.do_move(move, st, givesCheck, dirties, &sharedHistory);
 
-    if (ss != nullptr)
-    {
-        auto& dirtyPiece = dirties.dirtyPiece;
-        ss->currentMove  = move;
-        ss->continuationHistory =
-          &continuationHistory[ss->inCheck][capture][dirtyPiece.pc][move.to_sq()];
-    }
+    auto& dirtyPiece = dirties.dirtyPiece;
+    ss->currentMove  = move;
+    ss->continuationHistory =
+      &continuationHistory[ss->inCheck][capture][dirtyPiece.pc][move.to_sq()];
+    (ss + 1)->key = st.key;
 }
 
 void Search::Worker::do_null_move(Position& pos, StateInfo& st, Stack* const ss) {
     pos.do_null_move(st);
-    ss->currentMove                   = Move::null();
-    ss->continuationHistory           = &continuationHistory[0][0][NO_PIECE][0];
+    ss->currentMove         = Move::null();
+    ss->continuationHistory = &continuationHistory[0][0][NO_PIECE][0];
+    (ss + 1)->key           = st.key;
 }
 
 void Search::Worker::undo_move(Position& pos, const Move move) {
@@ -797,7 +811,7 @@ Value Search::Worker::search(
     (ss + 2)->cutoffCnt        = 0;
     (ss + 1)->priorNMPFailHigh = 0;
 
-    const auto correctionValue = correction_value(*this, pos);
+    const auto correctionValue = correction_value(*this, pos, ss);
 
     // Step 4. Transposition table lookup
     excludedMove                   = ss->excludedMove;
@@ -1280,7 +1294,7 @@ moves_loop:  // When in check, search starts here
                     const int bonus =
                       std::clamp(int(value - ss->staticEval) * 664 / 1024,
                                  -CORRECTION_HISTORY_LIMIT / 4, CORRECTION_HISTORY_LIMIT / 4);
-                    update_correction_history(pos, *this, bonus);
+                    update_correction_history(pos, ss, *this, bonus);
                 }
 
                 return value;
@@ -1632,7 +1646,7 @@ moves_loop:  // When in check, search starts here
         auto bonus =
           std::clamp(int(bestValue - ss->staticEval) * depth * (bestMove ? 12 : 18) / 128,
                      -CORRECTION_HISTORY_LIMIT / 4, CORRECTION_HISTORY_LIMIT / 4);
-        update_correction_history(pos, *this, 1061 * bonus / 1024);
+        update_correction_history(pos, ss, *this, 1061 * bonus / 1024);
     }
 
     // The search is now complete
@@ -1714,7 +1728,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
         bestValue = futilityBase = -VALUE_INFINITE;
     else
     {
-        const auto correctionValue = correction_value(*this, pos);
+        const auto correctionValue = correction_value(*this, pos, ss);
 
         if (ss->ttHit)
         {
