@@ -156,6 +156,7 @@ class Position {
 
     // Accessing hash keys
     Key key() const;
+    Key move_key(Move m) const;
     Key prefetch_key(Move m) const;
     Key material_key() const;
     Key pawn_key() const;

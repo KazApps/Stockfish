@@ -626,9 +626,9 @@ void Position::update_slider_blockers(Color c) const {
     st->pinners[~c]        = 0;
 
     // Snipers are sliders that attack 's' when a piece and other snipers are removed
-    Bitboard snipers = ((attacks_bb(ROOK, ksq) & pieces(QUEEN, ROOK))
-                        | (attacks_bb(BISHOP, ksq) & pieces(QUEEN, BISHOP)))
-                     & pieces(~c);
+    Bitboard snipers   = ((attacks_bb(ROOK, ksq) & pieces(QUEEN, ROOK))
+                          | (attacks_bb(BISHOP, ksq) & pieces(QUEEN, BISHOP)))
+                       & pieces(~c);
     Bitboard occupancy = pieces() ^ snipers;
 
     while (snipers)
@@ -1192,16 +1192,16 @@ void Position::update_piece_threats(Piece               pc,
         return;
     }
 
-    const Bitboard threatTargets = pt == PAWN                 ? pieces(KNIGHT, ROOK)
-                                 : pt == BISHOP || pt == ROOK ? pieces(PAWN, KNIGHT, BISHOP, ROOK)
-                                                              : occupiedNoK;
-    Bitboard       threatened    = (pt == BISHOP  ? bAttacks
-                                    : pt == ROOK  ? rAttacks
-                                    : pt == QUEEN ? sliderAttacks
-                                    : pt == PAWN  ? PseudoAttacks[color_of(pc)][s]
-                                                  : PseudoAttacks[pt][s])
-                        & threatTargets;
-    Bitboard incomingThreats = PseudoAttacks[KNIGHT][s] & pieces(KNIGHT);
+    const Bitboard threatTargets   = pt == PAWN                 ? pieces(KNIGHT, ROOK)
+                                   : pt == BISHOP || pt == ROOK ? pieces(PAWN, KNIGHT, BISHOP, ROOK)
+                                                                : occupiedNoK;
+    Bitboard       threatened      = (pt == BISHOP  ? bAttacks
+                                      : pt == ROOK  ? rAttacks
+                                      : pt == QUEEN ? sliderAttacks
+                                      : pt == PAWN  ? PseudoAttacks[color_of(pc)][s]
+                                                    : PseudoAttacks[pt][s])
+                                   & threatTargets;
+    Bitboard       incomingThreats = PseudoAttacks[KNIGHT][s] & pieces(KNIGHT);
 
     if (pt == KNIGHT || pt == ROOK)
         incomingThreats |= (attacks_bb(PAWN, s, WHITE) & pieces(BLACK, PAWN))
@@ -1246,16 +1246,20 @@ void Position::update_piece_threats(Piece               pc,
 #endif
 }
 
-Key Position::prefetch_key(Move m) const {
+Key Position::move_key(Move m) const {
     Square from     = m.from_sq();
     Square to       = m.to_sq();
     Piece  pc       = piece_on(from);
     Piece  captured = piece_on(to);
-    Key    k        = st->key ^ Zobrist::side;
 
-    k ^= Zobrist::psq[captured][to] ^ Zobrist::psq[pc][to] ^ Zobrist::psq[pc][from];
+    return Zobrist::side ^ Zobrist::psq[captured][to] ^ Zobrist::psq[pc][to]
+         ^ Zobrist::psq[pc][from];
+}
 
-    if (captured || type_of(pc) == PAWN)
+Key Position::prefetch_key(Move m) const {
+    const auto k = st->key ^ move_key(m);
+
+    if (piece_on(m.to_sq()) || type_of(moved_piece(m)) == PAWN)
         return k;
 
     return adjust_key50<true>(k);
