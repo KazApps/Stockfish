@@ -38,6 +38,7 @@ namespace Stockfish {
 constexpr int PAWN_HISTORY_BASE_SIZE   = 8192;  // has to be a power of 2
 constexpr int UINT_16_HISTORY_SIZE     = std::numeric_limits<u16>::max() + 1;
 constexpr int CORRHIST_BASE_SIZE       = UINT_16_HISTORY_SIZE;
+constexpr int CONTCORRHIST_BASE_SIZE   = CORRHIST_BASE_SIZE * 2;
 constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 constexpr int LOW_PLY_HISTORY_SIZE     = 5;
 
@@ -75,6 +76,8 @@ struct StatsEntry {
 
         assert(std::abs(T(*this)) <= D);
     }
+
+    void fill(const T& v) { *this = v; }
 };
 
 enum StatsType {
@@ -95,7 +98,7 @@ template<typename T, int SizeMultiplier>
 struct DynStats {
     explicit DynStats(usize s) :
         size(s * SizeMultiplier),
-        data(make_unique_large_page<T[]>(size)) {}
+        data(make_unique_large_page<T[]>(size)) { }
     // Sets all values in the range to 0
     void clear_range(int value, usize threadIdx, usize numaTotal) {
         usize start = u64(threadIdx) * size / numaTotal;
@@ -144,6 +147,10 @@ using ContinuationHistory = MultiArray<PieceToHistory, PIECE_NB, SQUARE_NB>;
 // PawnHistory is addressed by the pawn structure and a move's [piece][to]
 using PawnHistory = DynStats<AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>, PAWN_HISTORY_BASE_SIZE>;
 
+// Correction histories record differences between the static evaluation of
+// positions and their search score. It is used to improve the static evaluation
+// used by some search heuristics.
+// see https://www.chessprogramming.org/Static_Evaluation_Correction_History
 template<typename T, int D>
 struct CorrectionBundle {
     StatsEntry<T, D, true> pawn;
@@ -163,6 +170,9 @@ using UnifiedCorrectionHistory =
   DynStats<MultiArray<CorrectionBundle<i16, CORRECTION_HISTORY_LIMIT>, COLOR_NB>,
            CORRHIST_BASE_SIZE>;
 
+using ContinuationCorrectionHistory =
+  DynStats<StatsEntry<i16, CORRECTION_HISTORY_LIMIT, true>, CONTCORRHIST_BASE_SIZE>;
+
 using TTMoveHistory = StatsEntry<i16, 8192>;
 
 struct ContinuationHistoryBlock {
@@ -177,10 +187,12 @@ struct SharedHistories {
     SharedHistories(usize threadCount) :
         correctionHistory(threadCount),
         continuationHistoryBlock(make_unique_large_page<ContinuationHistoryBlock>()),
-        pawnHistory(threadCount) {
+        pawnHistory(threadCount),
+        continuationCorrectionHistory(threadCount) {
         assert((threadCount & (threadCount - 1)) == 0 && threadCount != 0);
-        sizeMinus1         = correctionHistory.get_size() - 1;
-        pawnHistSizeMinus1 = pawnHistory.get_size() - 1;
+        sizeMinus1             = correctionHistory.get_size() - 1;
+        pawnHistSizeMinus1     = pawnHistory.get_size() - 1;
+        contCorrHistSizeMinus1 = continuationCorrectionHistory.get_size() - 1;
     }
 
     auto& continuationHistory() { return continuationHistoryBlock->table; }
@@ -217,13 +229,21 @@ struct SharedHistories {
         return correctionHistory[pos.non_pawn_key(c) & sizeMinus1];
     }
 
+    auto& continuation_correction_entry(Key key) {
+        return continuationCorrectionHistory[key & contCorrHistSizeMinus1];
+    }
+    const auto& continuation_correction_entry(Key key) const {
+        return continuationCorrectionHistory[key & contCorrHistSizeMinus1];
+    }
+
     UnifiedCorrectionHistory               correctionHistory;
     LargePagePtr<ContinuationHistoryBlock> continuationHistoryBlock;
     PawnHistory                            pawnHistory;
+    ContinuationCorrectionHistory          continuationCorrectionHistory;
 
 
    private:
-    usize sizeMinus1, pawnHistSizeMinus1;
+    usize sizeMinus1, pawnHistSizeMinus1, contCorrHistSizeMinus1;
 };
 
 }  // namespace Stockfish
