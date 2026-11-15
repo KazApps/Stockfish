@@ -93,14 +93,15 @@ const std::array<int, MAX_MOVES> reductions = [] {
 // optimized for require verifications at longer time controls.
 
 int correction_value(const Worker& w, const Position& pos, const Stack* const ss) {
-    const auto  k0 = ss->key, k1 = (ss - 1)->key;
+    const auto  k0 = ss->key, k1 = (ss - 1)->key, k2 = (ss - 2)->key;
     const auto& shared = w.sharedHistory;
 
     const int   pcv    = shared.pawn_correction_entry(pos).pawn;
     const int   micv   = shared.minor_piece_correction_entry(pos).minor;
     const int   wnpcv  = shared.nonpawn_correction_entry<WHITE>(pos).nonPawnWhite;
     const int   bnpcv  = shared.nonpawn_correction_entry<BLACK>(pos).nonPawnBlack;
-    const int   cntcv  = k1 ? 8000 * shared.continuation_correction_entry(k0 ^ k1).cont : 0;
+    const int   cntcv  = (k1 ? 5500 * shared.continuation_correction_entry(k0 ^ k1).cont : 0)
+                            + (k2 ? 7000 * shared.continuation_correction_entry(k0 ^ k2).cont : 0);
 
     return 13806 * pcv + 9512 * micv + 11615 * (wnpcv + bnpcv) + cntcv;
 }
@@ -123,10 +124,13 @@ void update_correction_history(const Position& pos,
     shared.nonpawn_correction_entry<WHITE>(pos).nonPawnWhite << bonus * nonPawnWeight / 128;
     shared.nonpawn_correction_entry<BLACK>(pos).nonPawnBlack << bonus * nonPawnWeight / 128;
 
-    const auto k0 = ss->key, k1 = (ss - 1)->key;
+    const auto k0 = ss->key, k1 = (ss - 1)->key, k2 = (ss - 2)->key;
 
     if (k1)
-        shared.continuation_correction_entry(k0 ^ k1).cont << bonus * 130 / 128;
+        shared.continuation_correction_entry(k0 ^ k1).cont << bonus * 140 / 128;
+
+    if (k2)
+        shared.continuation_correction_entry(k0 ^ k2).cont << bonus * 145 / 128;
 }
 
 // Add a small random component to draw evaluations to avoid 3-fold blindness
@@ -655,6 +659,7 @@ void Search::Worker::do_move(
     // For these rare moves the prefetches land on unused lines.
     prefetch(tt.get_cluster(pos.prefetch_key(move)));
     prefetch(&sharedHistory.continuation_correction_entry(pos.move_key(move)).cont);
+    prefetch(&sharedHistory.continuation_correction_entry(pos.move_key(move) ^ ss->key ^ (ss - 1)->key).cont);
 
     ++nodes;
 
