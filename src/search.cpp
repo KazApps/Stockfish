@@ -92,6 +92,9 @@ const std::array<int, MAX_MOVES> reductions = [] {
 // (*Scaler) All tuned parameters at time controls shorter than
 // optimized for require verifications at longer time controls.
 
+int x1 = 5000, x2 = 7300, x3 = 130, x4 = 130;
+TUNE(x1, x2, x3, x4);
+
 int correction_value(const Worker& w, const Position& pos, const Stack* const ss) {
     const auto  k0 = ss->key, k1 = (ss - 1)->key, k2 = (ss - 2)->key;
     const auto& shared = w.sharedHistory;
@@ -100,8 +103,8 @@ int correction_value(const Worker& w, const Position& pos, const Stack* const ss
     const int   micv   = shared.minor_piece_correction_entry(pos).minor;
     const int   wnpcv  = shared.nonpawn_correction_entry<WHITE>(pos).nonPawnWhite;
     const int   bnpcv  = shared.nonpawn_correction_entry<BLACK>(pos).nonPawnBlack;
-    const int   cntcv  = (k1 ? 5000 * shared.continuation_correction_entry(k0 ^ k1).cont : 0)
-                            + (k2 ? 7300 * shared.continuation_correction_entry(k0 ^ k2).cont : 0);
+    const int   cntcv  = (k1 ? x1 * shared.continuation_correction_entry(k0 ^ k1).cont : 0)
+                            + (k2 ? x2 * shared.continuation_correction_entry(k0 ^ k2).cont : 0);
 
     return 13806 * pcv + 9512 * micv + 11615 * (wnpcv + bnpcv) + cntcv;
 }
@@ -127,10 +130,10 @@ void update_correction_history(const Position& pos,
     const auto k0 = ss->key, k1 = (ss - 1)->key, k2 = (ss - 2)->key;
 
     if (k1)
-        shared.continuation_correction_entry(k0 ^ k1).cont << bonus * 130 / 128;
+        shared.continuation_correction_entry(k0 ^ k1).cont << bonus * x3 / 128;
 
     if (k2)
-        shared.continuation_correction_entry(k0 ^ k2).cont << bonus * 130 / 128;
+        shared.continuation_correction_entry(k0 ^ k2).cont << bonus * x4 / 128;
 }
 
 // Add a small random component to draw evaluations to avoid 3-fold blindness
