@@ -93,14 +93,24 @@ const std::array<int, MAX_MOVES> reductions = [] {
 // optimized for require verifications at longer time controls.
 
 int correction_value(const Worker& w, const Position& pos, const Stack* const ss) {
-    const auto  k0 = ss->key, k1 = (ss - 1)->key;
     const auto& shared = w.sharedHistory;
 
     const int   pcv    = shared.pawn_correction_entry(pos).pawn;
     const int   micv   = shared.minor_piece_correction_entry(pos).minor;
     const int   wnpcv  = shared.nonpawn_correction_entry<WHITE>(pos).nonPawnWhite;
     const int   bnpcv  = shared.nonpawn_correction_entry<BLACK>(pos).nonPawnBlack;
-    const int   cntcv  = k1 ? 8000 * shared.continuation_correction_entry(k0 ^ k1).cont : 0;
+
+    int cntcv = 0;
+    const auto  k0 = ss->key, k1 = (ss - 1)->key;
+
+    if (k1) {
+        if ((k0 ^ k1) != 1)
+            cntcv = 8000 * shared.continuation_correction_entry(k0 ^ k1).cont;
+        else {
+            assert(!(ss - 1)->currentMove.is_ok());
+            cntcv = 80695;
+        }
+    }
 
     return 13806 * pcv + 9512 * micv + 11615 * (wnpcv + bnpcv) + cntcv;
 }
@@ -125,7 +135,7 @@ void update_correction_history(const Position& pos,
 
     const auto k0 = ss->key, k1 = (ss - 1)->key;
 
-    if (k1)
+    if (k1 && (k0 ^ k1) != 1)
         shared.continuation_correction_entry(k0 ^ k1).cont << bonus * 130 / 128;
 }
 
